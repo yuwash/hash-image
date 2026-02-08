@@ -48,6 +48,7 @@ input:disabled, button:disabled {
     width: 10rem;
     height: 10rem;
     border: 2px solid #333; /* move border here */
+    padding: 2px;
 }
 
 #preview-bitmap {
