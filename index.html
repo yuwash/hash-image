@@ -1,0 +1,28 @@
+<!doctype html>
+<title>hash-image</title>
+<link rel="stylesheet" type="text/css" href="style.css"></link>
+<script src="https://cdn.jsdelivr.net/npm/hash-wasm@4/dist/crc32.umd.min.js"></script>
+<body>
+<h1>hash-image</h1>
+<div id="controls">
+    <label for="hash-input">Find my hash image:</label>
+    <div id="input-row">
+      <div id="input-col">
+            <input type="text" id="hash-input" placeholder="Type text here...">
+      </div>
+      <div id="info-col">
+        <div id="result-info"></div>
+      </div>
+    </div>
+</div>
+
+<div id="preview-container">
+    <div id="preview-wrapper">
+        <!-- This will be populated dynamically -->
+        <div id="large-bitmap" class="preview-bitmap"></div>
+    </div>
+</div>
+
+<div id="grid-container"></div>
+<script src="app.js"></script>
+</body>
