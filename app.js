@@ -17,6 +17,8 @@ let ctx;
 let downloadBtn;
 let resultInfo;
 let inputField;
+let colorPickerBtn;
+let foregroundColor = 'black';
 
 function initGlobals() {
   gridContainer = document.getElementById('grid-container');
@@ -25,6 +27,7 @@ function initGlobals() {
   downloadBtn = document.getElementById('download-btn');
   resultInfo = document.getElementById('result-info');
   inputField = document.getElementById('hash-input');
+  colorPickerBtn = document.getElementById('color-picker-btn');
 }
 
 const SCALE_UP = 10;
@@ -90,7 +93,7 @@ function drawCanvasBitmap(index) {
                 }
             }
 
-            ctx.fillStyle = isBlack ? 'black' : 'white';
+            ctx.fillStyle = isBlack ? foregroundColor : 'white';
             ctx.fillRect(x * SCALE_UP, y * SCALE_UP, SCALE_UP, SCALE_UP);
         }
     }
@@ -157,6 +160,28 @@ document.addEventListener('DOMContentLoaded', () => {
   drawBitmapGrid();
   inputField.addEventListener('input', handleInput);
   downloadBtn.addEventListener('click', handleDownload);
+
+  const picker = new Picker({
+    parent: colorPickerBtn,
+    alpha: false,
+    color: '#000000'
+  });
+
+  picker.on('color', function(color) {
+    foregroundColor = color.hex;
+    const text = inputField.value;
+    if (text) {
+        if (crc32Instance) {
+          crc32Instance.init();
+          const uint8Array = new TextEncoder().encode(text);
+          crc32Instance.update(uint8Array);
+          const hash = crc32Instance.digest('hex');
+          const first8Hex = hash.substring(0, 8);
+          const index = (parseInt(first8Hex, 16) % 256);
+          drawCanvasBitmap(index);
+        }
+    }
+  });
 
   // Initialize empty state
   ctx.fillStyle = 'white';
