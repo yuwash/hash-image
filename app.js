@@ -18,10 +18,12 @@ let downloadBtn;
 let resultInfo;
 let inputField;
 let colorPickerBtn;
+let invertBtn;
 let controls;
 let foregroundColor = 'black';
 let currentMode = 'input'; // 'input' or 'grid'
 let selectedImageIndex = null; // Track the selected image index
+let isInverted = false; // Track whether inversion is enabled
 
 function initGlobals() {
   gridContainer = document.getElementById('grid-container');
@@ -31,6 +33,7 @@ function initGlobals() {
   resultInfo = document.getElementById('result-info');
   inputField = document.getElementById('hash-input');
   colorPickerBtn = document.getElementById('color-picker-btn');
+  invertBtn = document.getElementById('invert-btn');
   controls = document.getElementById('controls');
 }
 
@@ -42,7 +45,7 @@ function initCanvas() {
   largeBitmapCanvas.height = canvasSize;
 }
 
-function getPixelArray(index) {
+function getPixelArray(index, invert = false) {
   // Val is now 9 bit, holding all pixels.
   // Last (largest) bit always 1.
   const val = index + 256;
@@ -52,7 +55,13 @@ function getPixelArray(index) {
     const row = [];
     for (let x = 0; x < 3; x++) {
       const posIndex = x + (3 * y);
-      const bit = (val >> posIndex) & 1;
+      let bit = (val >> posIndex) & 1;
+      
+      // Apply inversion if requested
+      if (invert) {
+        bit = bit === 1 ? 0 : 1;
+      }
+      
       row.push(bit);
     }
     pixelArray.push(row);
@@ -93,7 +102,7 @@ function createBitmap(index, cssClass, showIndex) {
 
 function drawCanvasBitmap(index) {
     ctx.clearRect(0, 0, canvasSize, canvasSize);
-    const pixelArray = getPixelArray(index);
+    const pixelArray = getPixelArray(index, isInverted);
 
     pixelArray.forEach((row, y) => {
       row.forEach((pixelValue, x) => {
@@ -203,6 +212,20 @@ document.addEventListener('DOMContentLoaded', () => {
             drawCanvasBitmap(hashInfo.index);
           }
       }
+    }
+  });
+
+  // Handle invert button click
+  invertBtn.addEventListener('click', () => {
+    isInverted = !isInverted;
+    invertBtn.classList.toggle('active', isInverted);
+    
+    // Redraw the current bitmap with inversion state
+    const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
+                      (inputField.value ? getHashInfo(inputField.value)?.index : null);
+    
+    if (indexToUse !== null) {
+      drawCanvasBitmap(indexToUse);
     }
   });
 
