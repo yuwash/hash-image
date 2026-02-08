@@ -158,12 +158,16 @@ function handleUrlNavigation() {
   if (match) {
     const index = parseInt(match[1]);
     if (index >= 0 && index <= 255) {
-      selectedImageIndex = index;
-      currentMode = 'input';
-      controls.classList.remove('disabled');
-      inputField.disabled = false;
-      drawCanvasBitmap(index);
-      updateTitleAndHeader(index);
+      // ONLY reset to input mode if the index is different from what's already selected
+      // or if we aren't already in grid mode.
+      if (selectedImageIndex !== index) {
+        selectedImageIndex = index;
+        currentMode = 'input';
+        controls.classList.remove('disabled');
+        inputField.disabled = false;
+        drawCanvasBitmap(index);
+        updateTitleAndHeader(index);
+      }
     }
   }
 }
