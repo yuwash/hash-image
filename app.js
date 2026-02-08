@@ -11,12 +11,21 @@ async function initHasher() {
   }
 }
 
-const gridContainer = document.getElementById('grid-container');
-const largeBitmapCanvas = document.getElementById('preview-bitmap');
-const ctx = largeBitmapCanvas.getContext('2d');
-const downloadBtn = document.getElementById('download-btn');
-const inputField = document.getElementById('hash-input');
-const resultInfo = document.getElementById('result-info');
+let gridContainer;
+let largeBitmapCanvas;
+let ctx;
+let downloadBtn;
+let resultInfo;
+let inputField;
+
+function initGlobals() {
+  gridContainer = document.getElementById('grid-container');
+  largeBitmapCanvas = document.getElementById('preview-bitmap');
+  ctx = largeBitmapCanvas.getContext('2d');
+  downloadBtn = document.getElementById('download-btn');
+  resultInfo = document.getElementById('result-info');
+  inputField = document.getElementById('hash-input');
+}
 
 const SCALE_UP = 10;
 const canvasSize = 3 * SCALE_UP;
@@ -139,6 +148,7 @@ downloadBtn.addEventListener('click', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  initGlobals();
   initHasher();
   drawBitmapGrid();
 
