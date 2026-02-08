@@ -193,14 +193,12 @@ async function handleDownload() {
 // URL handling functions
 
 function updateUrlWithIndex(index) {
-  const url = new URL(window.location);
-  url.pathname = `/image9/${index}`;
-  window.history.pushState({ index }, '', url);
+  window.location.hash = `#/image9/${index}`;
 }
 
 function handleUrlNavigation() {
-  const path = window.location.pathname;
-  const match = path.match(/\/image9\/(\d+)/);
+  const hash = window.location.hash;
+  const match = hash.match(/#\/image9\/(\d+)/);
   if (match) {
     const index = parseInt(match[1]);
     if (index >= 0 && index <= 255) {
