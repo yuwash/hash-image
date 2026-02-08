@@ -113,6 +113,12 @@ function drawCanvasBitmap(index) {
     });
 }
 
+// Update title and h1 with current index
+function updateTitleAndHeader(index) {
+  document.title = `hash-image ${index}`;
+  document.querySelector('h1').textContent = `hash-image ${index}`;
+}
+
 // 1. Generate the grid of 256 images
 function drawBitmapGrid() {
   for (let i = 0; i <= 255; i++) {
@@ -124,6 +130,7 @@ function drawBitmapGrid() {
           controls.classList.add('disabled');
           inputField.disabled = true;
           updateUrlWithIndex(i);
+          updateTitleAndHeader(i);
       });
       gridContainer.appendChild(wrapper);
   }
@@ -169,12 +176,12 @@ async function handleInput(e) {
     const hashInfo = getHashInfo(text);
     if (hashInfo) {
       resultInfo.innerHTML =
-        `Hash (CRC-32): ${hashInfo.base}<span class="last-two">${hashInfo.last}</span>` +
-        ` (Image ${hashInfo.imageNumber})`;
+        `Hash (CRC-32): ${hashInfo.base}<span class="last-two">${hashInfo.last}</span>`;
 
       selectedImageIndex = hashInfo.index; // Store the index from input
       drawCanvasBitmap(hashInfo.index);
       updateUrlWithIndex(hashInfo.index);
+      updateTitleAndHeader(hashInfo.index);
     }
 }
 
@@ -207,6 +214,7 @@ function handleUrlNavigation() {
       controls.classList.remove('disabled');
       inputField.disabled = false;
       drawCanvasBitmap(index);
+      updateTitleAndHeader(index);
     }
   }
 }
@@ -238,6 +246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             selectedImageIndex = hashInfo.index; // Store the index from input
             drawCanvasBitmap(hashInfo.index);
             updateUrlWithIndex(hashInfo.index);
+            updateTitleAndHeader(hashInfo.index);
           }
       }
     }
