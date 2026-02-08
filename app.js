@@ -164,22 +164,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const picker = new Picker({
     parent: colorPickerBtn,
     alpha: false,
-    color: '#000000'
-  });
-
-  picker.on('color', function(color) {
-    foregroundColor = color.hex;
-    const text = inputField.value;
-    if (text) {
-        if (crc32Instance) {
-          crc32Instance.init();
-          const uint8Array = new TextEncoder().encode(text);
-          crc32Instance.update(uint8Array);
-          const hash = crc32Instance.digest('hex');
-          const first8Hex = hash.substring(0, 8);
-          const index = (parseInt(first8Hex, 16) % 256);
-          drawCanvasBitmap(index);
-        }
+    color: '#000000',
+    onChange: function(color) {
+      foregroundColor = color.hex;
+      const text = inputField.value;
+      if (text) {
+          if (crc32Instance) {
+            crc32Instance.init();
+            const uint8Array = new TextEncoder().encode(text);
+            crc32Instance.update(uint8Array);
+            const hash = crc32Instance.digest('hex');
+            const first8Hex = hash.substring(0, 8);
+            const index = (parseInt(first8Hex, 16) % 256);
+            drawCanvasBitmap(index);
+          }
+      }
     }
   });
 
