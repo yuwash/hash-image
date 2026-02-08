@@ -213,10 +213,10 @@ function handleUrlNavigation() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initGlobals();
   initCanvas();
-  initHasher();
+  await initHasher();
   drawBitmapGrid();
   inputField.addEventListener('input', handleInput);
   downloadBtn.addEventListener('click', handleDownload);
