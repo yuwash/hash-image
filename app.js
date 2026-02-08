@@ -18,7 +18,10 @@ let downloadBtn;
 let resultInfo;
 let inputField;
 let colorPickerBtn;
+let controls;
 let foregroundColor = 'black';
+let currentMode = 'input'; // 'input' or 'grid'
+let selectedImageIndex = null; // Track the selected image index
 
 function initGlobals() {
   gridContainer = document.getElementById('grid-container');
@@ -28,6 +31,7 @@ function initGlobals() {
   resultInfo = document.getElementById('result-info');
   inputField = document.getElementById('hash-input');
   colorPickerBtn = document.getElementById('color-picker-btn');
+  controls = document.getElementById('controls');
 }
 
 const SCALE_UP = 10;
@@ -100,10 +104,17 @@ function drawCanvasBitmap(index) {
 }
 
 // 1. Generate the grid of 256 images
-function drawBitmapGrid(index) {
+function drawBitmapGrid() {
   for (let i = 0; i <= 255; i++) {
-      const bitmap = createBitmap(i, 'bitmap', true);
-      gridContainer.appendChild(bitmap);
+      const wrapper = createBitmap(i, 'bitmap', true);
+      wrapper.addEventListener('click', () => {
+          currentMode = 'grid';
+          selectedImageIndex = i; // Store the selected index
+          drawCanvasBitmap(i);
+          controls.classList.add('disabled');
+          inputField.disabled = true;
+      });
+      gridContainer.appendChild(wrapper);
   }
 }
 
@@ -153,6 +164,7 @@ async function handleInput(e) {
         `Hash (CRC-32): ${hashInfo.base}<span class="last-two">${hashInfo.last}</span>` +
         ` (Image ${hashInfo.imageNumber})`;
 
+      selectedImageIndex = hashInfo.index; // Store the index from input
       drawCanvasBitmap(hashInfo.index);
     }
 }
@@ -177,18 +189,40 @@ document.addEventListener('DOMContentLoaded', () => {
   inputField.addEventListener('input', handleInput);
   downloadBtn.addEventListener('click', handleDownload);
 
+  // Handle click on controls to return to input mode
+  controls.addEventListener('click', () => {
+    if (currentMode === 'grid') {
+      currentMode = 'input';
+      controls.classList.remove('disabled');
+      inputField.disabled = false;
+      
+      // Update preview with current input
+      const text = inputField.value;
+      if (text) {
+          const hashInfo = getHashInfo(text);
+          if (hashInfo) {
+            selectedImageIndex = hashInfo.index; // Store the index from input
+            drawCanvasBitmap(hashInfo.index);
+          }
+      } else {
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvasSize, canvasSize);
+      }
+    }
+  });
+
   const picker = new Picker({
     parent: colorPickerBtn,
     alpha: false,
     color: '#000000',
     onChange: function(color) {
       foregroundColor = color.hex;
-      const text = inputField.value;
-      if (text) {
-          const hashInfo = getHashInfo(text);
-          if (hashInfo) {
-            drawCanvasBitmap(hashInfo.index);
-          }
+      // Use the selected image index if available, otherwise use input-based index
+      const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
+                        (inputField.value ? getHashInfo(inputField.value)?.index : null);
+      
+      if (indexToUse !== null) {
+        drawCanvasBitmap(indexToUse);
       }
     }
   });
