@@ -123,6 +123,7 @@ function drawBitmapGrid() {
           drawCanvasBitmap(i);
           controls.classList.add('disabled');
           inputField.disabled = true;
+          updateUrlWithIndex(i);
       });
       gridContainer.appendChild(wrapper);
   }
@@ -173,6 +174,7 @@ async function handleInput(e) {
 
       selectedImageIndex = hashInfo.index; // Store the index from input
       drawCanvasBitmap(hashInfo.index);
+      updateUrlWithIndex(hashInfo.index);
     }
 }
 
@@ -188,6 +190,29 @@ async function handleDownload() {
     URL.revokeObjectURL(url);
 }
 
+// URL handling functions
+
+function updateUrlWithIndex(index) {
+  const url = new URL(window.location);
+  url.pathname = `/image9/${index}`;
+  window.history.pushState({ index }, '', url);
+}
+
+function handleUrlNavigation() {
+  const path = window.location.pathname;
+  const match = path.match(/\/image9\/(\d+)/);
+  if (match) {
+    const index = parseInt(match[1]);
+    if (index >= 0 && index <= 255) {
+      selectedImageIndex = index;
+      currentMode = 'input';
+      controls.classList.remove('disabled');
+      inputField.disabled = false;
+      drawCanvasBitmap(index);
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initGlobals();
   initCanvas();
@@ -195,6 +220,10 @@ document.addEventListener('DOMContentLoaded', () => {
   drawBitmapGrid();
   inputField.addEventListener('input', handleInput);
   downloadBtn.addEventListener('click', handleDownload);
+
+  // Handle URL navigation
+  handleUrlNavigation();
+  window.addEventListener('popstate', handleUrlNavigation);
 
   // Handle click on controls to return to input mode
   controls.addEventListener('click', () => {
@@ -210,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (hashInfo) {
             selectedImageIndex = hashInfo.index; // Store the index from input
             drawCanvasBitmap(hashInfo.index);
+            updateUrlWithIndex(hashInfo.index);
           }
       }
     }
