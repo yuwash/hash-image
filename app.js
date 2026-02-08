@@ -97,7 +97,7 @@ function drawCanvasBitmap(index) {
                 }
             }
 
-            ctx.fillStyle = isBlack ? foregroundColor : 'white';
+            ctx.fillStyle = isBlack ? foregroundColor : '#fff0';
             ctx.fillRect(x * SCALE_UP, y * SCALE_UP, SCALE_UP, SCALE_UP);
         }
     }
@@ -152,9 +152,6 @@ async function handleInput(e) {
     const text = e.target.value;
     resultInfo.textContent = '';
     if (!text) {
-      resultInfo.innerHTML = '';
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvasSize, canvasSize);
       return;
     }
 
@@ -204,9 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedImageIndex = hashInfo.index; // Store the index from input
             drawCanvasBitmap(hashInfo.index);
           }
-      } else {
-          ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, canvasSize, canvasSize);
       }
     }
   });
@@ -226,8 +220,4 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
-
-  // Initialize empty state
-  ctx.fillStyle = 'white';
-  ctx.fillRect(0, 0, canvasSize, canvasSize);
 });

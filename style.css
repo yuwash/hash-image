@@ -121,7 +121,6 @@ input:disabled, button:disabled {
 .bitmap {
   width: 2rem;
   height: 2rem;
-  background-color: white;
   border: 1px solid #ccc;
   display: flex;
   flex-wrap: wrap;
@@ -139,7 +138,7 @@ input:disabled, button:disabled {
 }
 
 .pixel.white {
-    background-color: white;
+    background-color: #fff0;
 }
 
 /* Index label (0-255) on top of the small images */
