@@ -29,8 +29,11 @@ function initGlobals() {
 
 const SCALE_UP = 10;
 const canvasSize = 3 * SCALE_UP;
-largeBitmapCanvas.width = canvasSize;
-largeBitmapCanvas.height = canvasSize;
+
+function initCanvas() {
+  largeBitmapCanvas.width = canvasSize;
+  largeBitmapCanvas.height = canvasSize;
+}
 
 function createBitmap(index, cssClass, showIndex) {
   // Container for label + bitmap
@@ -149,6 +152,7 @@ downloadBtn.addEventListener('click', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   initGlobals();
+  initCanvas();
   initHasher();
   drawBitmapGrid();
 
