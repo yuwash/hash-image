@@ -5,8 +5,11 @@
 <link rel="stylesheet" type="text/css" href="style.css"></link>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <script src="https://cdn.jsdelivr.net/npm/hash-wasm@4/dist/crc32.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@pdf-lib/upng@1.0.1/UPNG.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vanilla-picker@2.12.3/dist/vanilla-picker.min.js"></script>
+<script type="module">
+import pdfLibupng from 'https://cdn.jsdelivr.net/npm/@pdf-lib/upng@1.0.1/+esm'
+window.UPNG = pdfLibupng;
+</script>
 <script src="app.js" type="module"></script>
 </head>
 <body>
