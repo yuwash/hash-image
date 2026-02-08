@@ -105,7 +105,7 @@ function drawBitmapGrid(index) {
 }
 
 // 2. Handle Input Logic
-inputField.addEventListener('input', async (e) => {
+async function handleInput(e) {
     const text = e.target.value;
     resultInfo.textContent = '';
     if (!text) {
@@ -136,9 +136,9 @@ inputField.addEventListener('input', async (e) => {
 
       drawCanvasBitmap(index);
     }
-});
+}
 
-downloadBtn.addEventListener('click', () => {
+async function handleDownload() {
     const imageData = ctx.getImageData(0, 0, canvasSize, canvasSize);
     const png = UPNG.encode([imageData.data.buffer], canvasSize, canvasSize, 0);
     const blob = new Blob([png], {type: 'image/png'});
@@ -148,13 +148,15 @@ downloadBtn.addEventListener('click', () => {
     a.download = 'hash-image.png';
     a.click();
     URL.revokeObjectURL(url);
-});
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   initGlobals();
   initCanvas();
   initHasher();
   drawBitmapGrid();
+  inputField.addEventListener('input', handleInput);
+  downloadBtn.addEventListener('click', handleDownload);
 
   // Initialize empty state
   ctx.fillStyle = 'white';
