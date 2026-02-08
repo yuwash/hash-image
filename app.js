@@ -107,6 +107,35 @@ function drawBitmapGrid(index) {
   }
 }
 
+// Function to calculate hash info from text
+function getHashInfo(text) {
+  if (!crc32Instance) {
+    return null;
+  }
+  
+  crc32Instance.init();
+  const uint8Array = new TextEncoder().encode(text);
+  crc32Instance.update(uint8Array);
+  const hash = crc32Instance.digest('hex');
+
+  const first8Hex = hash.substring(0, 8);
+  const index = (parseInt(first8Hex, 16) % 256);
+
+  const lastTwo = hash.slice(-2);
+  const imageNumber = parseInt(lastTwo, 16);
+
+  const base = hash.slice(0, -2);
+  const last = hash.slice(-2);
+
+  return {
+    hash: hash,
+    index: index,
+    imageNumber: imageNumber,
+    base: base,
+    last: last
+  };
+}
+
 // 2. Handle Input Logic
 async function handleInput(e) {
     const text = e.target.value;
@@ -118,26 +147,13 @@ async function handleInput(e) {
       return;
     }
 
-    if (crc32Instance) {
-      crc32Instance.init();
-      const uint8Array = new TextEncoder().encode(text);
-      crc32Instance.update(uint8Array);
-      const hash = crc32Instance.digest('hex');
-
-      const first8Hex = hash.substring(0, 8);
-      const index = (parseInt(first8Hex, 16) % 256);
-
-      const lastTwo = hash.slice(-2);
-      const imageNumber = parseInt(lastTwo, 16);
-
-      const base = hash.slice(0, -2);
-      const last = hash.slice(-2);
-
+    const hashInfo = getHashInfo(text);
+    if (hashInfo) {
       resultInfo.innerHTML =
-        `Hash (CRC-32): ${base}<span class="last-two">${last}</span>` +
-        ` (Image ${imageNumber})`;
+        `Hash (CRC-32): ${hashInfo.base}<span class="last-two">${hashInfo.last}</span>` +
+        ` (Image ${hashInfo.imageNumber})`;
 
-      drawCanvasBitmap(index);
+      drawCanvasBitmap(hashInfo.index);
     }
 }
 
@@ -169,14 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
       foregroundColor = color.hex;
       const text = inputField.value;
       if (text) {
-          if (crc32Instance) {
-            crc32Instance.init();
-            const uint8Array = new TextEncoder().encode(text);
-            crc32Instance.update(uint8Array);
-            const hash = crc32Instance.digest('hex');
-            const first8Hex = hash.substring(0, 8);
-            const index = (parseInt(first8Hex, 16) % 256);
-            drawCanvasBitmap(index);
+          const hashInfo = getHashInfo(text);
+          if (hashInfo) {
+            drawCanvasBitmap(hashInfo.index);
           }
       }
     }
