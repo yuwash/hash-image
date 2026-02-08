@@ -11,8 +11,6 @@ async function initHasher() {
   }
 }
 
-initHasher();
-
 const gridContainer = document.getElementById('grid-container');
 const largeBitmapCanvas = document.getElementById('preview-bitmap');
 const ctx = largeBitmapCanvas.getContext('2d');
@@ -87,9 +85,11 @@ function drawCanvasBitmap(index) {
 }
 
 // 1. Generate the grid of 256 images
-for (let i = 0; i <= 255; i++) {
-    const bitmap = createBitmap(i, 'bitmap', true);
-    gridContainer.appendChild(bitmap);
+function drawBitmapGrid(index) {
+  for (let i = 0; i <= 255; i++) {
+      const bitmap = createBitmap(i, 'bitmap', true);
+      gridContainer.appendChild(bitmap);
+  }
 }
 
 // 2. Handle Input Logic
@@ -138,6 +138,11 @@ downloadBtn.addEventListener('click', () => {
     URL.revokeObjectURL(url);
 });
 
-// Initialize empty state
-ctx.fillStyle = 'white';
-ctx.fillRect(0, 0, canvasSize, canvasSize);
+document.addEventListener('DOMContentLoaded', () => {
+  initHasher();
+  drawBitmapGrid();
+
+  // Initialize empty state
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvasSize, canvasSize);
+});
