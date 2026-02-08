@@ -42,6 +42,25 @@ function initCanvas() {
   largeBitmapCanvas.height = canvasSize;
 }
 
+function getPixelArray(index) {
+  // Val is now 9 bit, holding all pixels.
+  // Last (largest) bit always 1.
+  const val = index + 256;
+  const pixelArray = [];
+  
+  for (let y = 0; y < 3; y++) {
+    const row = [];
+    for (let x = 0; x < 3; x++) {
+      const posIndex = x + (3 * y);
+      const bit = (val >> posIndex) & 1;
+      row.push(bit);
+    }
+    pixelArray.push(row);
+  }
+  
+  return pixelArray;
+}
+
 function createBitmap(index, cssClass, showIndex) {
   // Container for label + bitmap
   const wrapper = document.createElement('div');
@@ -57,24 +76,16 @@ function createBitmap(index, cssClass, showIndex) {
   const bitmapDiv = document.createElement('div');
   bitmapDiv.className = cssClass;
 
-  const val = index;
+  const pixelArray = getPixelArray(index);
 
-  for (let y = 0; y < 3; y++) {
-    for (let x = 0; x < 3; x++) {
+  pixelArray.forEach(row => {
+    row.forEach(pixelValue => {
       const pixelDiv = document.createElement('div');
       pixelDiv.className = 'pixel';
-
-      if (x === 2 && y === 2) {
-        pixelDiv.classList.add('black');
-      } else {
-        const posIndex = x + (3 * y);
-        const bit = (val >> posIndex) & 1;
-        pixelDiv.classList.add(bit === 1 ? 'black' : 'white');
-      }
-
+      pixelDiv.classList.add(pixelValue === 1 ? 'black' : 'white');
       bitmapDiv.appendChild(pixelDiv);
-    }
-  }
+    });
+  });
 
   wrapper.appendChild(bitmapDiv);
   return wrapper;
@@ -82,25 +93,15 @@ function createBitmap(index, cssClass, showIndex) {
 
 function drawCanvasBitmap(index) {
     ctx.clearRect(0, 0, canvasSize, canvasSize);
-    const val = index;
+    const pixelArray = getPixelArray(index);
 
-    for (let y = 0; y < 3; y++) {
-        for (let x = 0; x < 3; x++) {
-            let isBlack = false;
-            if (x === 2 && y === 2) {
-                isBlack = true;
-            } else {
-                const posIndex = x + (3 * y);
-                const bit = (val >> posIndex) & 1;
-                if (bit === 1) {
-                    isBlack = true;
-                }
-            }
-
-            ctx.fillStyle = isBlack ? foregroundColor : '#fff0';
-            ctx.fillRect(x * SCALE_UP, y * SCALE_UP, SCALE_UP, SCALE_UP);
-        }
-    }
+    pixelArray.forEach((row, y) => {
+      row.forEach((pixelValue, x) => {
+        const isBlack = pixelValue === 1;
+        ctx.fillStyle = isBlack ? foregroundColor : '#fff0';
+        ctx.fillRect(x * SCALE_UP, y * SCALE_UP, SCALE_UP, SCALE_UP);
+      });
+    });
 }
 
 // 1. Generate the grid of 256 images
