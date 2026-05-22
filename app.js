@@ -26,6 +26,7 @@ let invertBtn;
 let controls;
 let audioBtn;
 let audioPlayer;
+let downloadAudioBtn;
 let audioUrl = null;
 let foregroundColor = 'black';
 let currentMode = 'input'; // 'input' or 'grid'
@@ -44,6 +45,7 @@ function initGlobals() {
   controls = document.getElementById('controls');
   audioBtn = document.getElementById('audio-btn');
   audioPlayer = document.getElementById('audio-player');
+  downloadAudioBtn = document.getElementById('download-audio-btn');
 }
 
 const SCALE_UP = 10;
@@ -62,6 +64,9 @@ function resetAudio() {
   if (audioPlayer) {
     audioPlayer.src = '';
     audioPlayer.classList.add('hidden');
+  }
+  if (downloadAudioBtn) {
+    downloadAudioBtn.classList.add('hidden');
   }
   if (audioBtn) {
     audioBtn.disabled = false;
@@ -298,6 +303,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       audioUrl = await generateHashAudio(bits);
       audioPlayer.src = audioUrl;
       audioPlayer.classList.remove('hidden');
+      if (downloadAudioBtn) {
+        downloadAudioBtn.classList.remove('hidden');
+      }
 
       // Attempt autoplay
       try {
@@ -314,6 +322,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       audioBtn.textContent = 'Generate Audio';
     }
   });
+
+  // Handle downloading the generated WAV file
+  if (downloadAudioBtn) {
+    downloadAudioBtn.addEventListener('click', () => {
+      if (audioUrl) {
+        const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
+                          (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : 'unknown');
+        const a = document.createElement('a');
+        a.href = audioUrl;
+        a.download = `hash-audio-${indexToUse}.wav`;
+        a.click();
+      }
+    });
+  }
 
   // Handle click on input container when input is disabled to switch back to text mode
   const controlWrapper = inputField.closest('.control');
