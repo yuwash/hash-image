@@ -69,6 +69,31 @@ function resetAudio() {
   }
 }
 
+function switchToTextInput() {
+  currentMode = 'input';
+  controls.classList.remove('disabled');
+  inputField.disabled = false;
+  resetAudio();
+  
+  const text = inputField.value;
+  if (text) {
+    const hashInfo = getHashInfo(text, crc32Instance);
+    if (hashInfo) {
+      selectedImageIndex = hashInfo.index; // Store the index from input
+      drawCanvasBitmap(hashInfo.index);
+      updateUrlWithIndex(hashInfo.index);
+      updateTitleAndHeader(hashInfo.index);
+    }
+  } else {
+    // If no text, clear preview canvas, URL, and header
+    selectedImageIndex = null;
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    window.location.hash = '';
+    document.title = 'hash-image';
+    document.querySelector('h1').textContent = 'hash-image';
+  }
+}
+
 function createBitmap(index, cssClass, showIndex) {
   // Container for label + bitmap
   const wrapper = document.createElement('div');
@@ -211,22 +236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Handle click on controls to return to input mode
   controls.addEventListener('click', () => {
     if (currentMode === 'grid') {
-      currentMode = 'input';
-      controls.classList.remove('disabled');
-      inputField.disabled = false;
-      resetAudio();
-      
-      // Update preview with current input
-      const text = inputField.value;
-      if (text) {
-          const hashInfo = getHashInfo(text, crc32Instance);
-          if (hashInfo) {
-            selectedImageIndex = hashInfo.index; // Store the index from input
-            drawCanvasBitmap(hashInfo.index);
-            updateUrlWithIndex(hashInfo.index);
-            updateTitleAndHeader(hashInfo.index);
-          }
-      }
+      switchToTextInput();
     }
   });
 
@@ -304,4 +314,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       audioBtn.textContent = 'Generate Audio';
     }
   });
+
+  // Handle click on input container when input is disabled to switch back to text mode
+  const controlWrapper = inputField.closest('.control');
+  if (controlWrapper) {
+    controlWrapper.addEventListener('click', (e) => {
+      if (inputField.disabled) {
+        // Prevent click from bubbling up to general controls listener
+        e.stopPropagation();
+        switchToTextInput();
+        inputField.focus();
+      }
+    });
+  }
 });

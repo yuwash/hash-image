@@ -85,3 +85,21 @@
 .hidden {
     display: none !important;
 }
+
+/* Let click events pass through disabled inputs to their wrappers */
+input:disabled {
+    pointer-events: none;
+}
+
+/* Gray out controls box when in grid mode (disabled) */
+#controls.disabled {
+    opacity: 0.6;
+    background-color: #f1f5f9 !important;
+    cursor: pointer;
+}
+
+#controls.disabled * {
+    color: #94a3b8 !important;
+    cursor: pointer;
+}
+
