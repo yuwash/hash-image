@@ -1,9 +1,12 @@
 <!doctype html>
-<html>
+<html data-theme="light">
 <head>
 <title>hash-image</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css"></link>
 <link rel="stylesheet" type="text/css" href="style.css"></link>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/15.1.22/Tone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/audiobuffer-to-wav@1.0.0/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hash-wasm@4/dist/crc32.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vanilla-picker@2.12.3/dist/vanilla-picker.min.js"></script>
 <script type="module">
@@ -13,28 +16,45 @@ window.UPNG = pdfLibupng;
 <script src="app.js" type="module"></script>
 </head>
 <body>
-<h1>hash-image</h1>
-<div id="controls">
-    <label for="hash-input">Find my hash image:</label>
-    <div id="input-row">
-      <div id="input-col">
-            <input type="text" id="hash-input" placeholder="Type text here...">
-      </div>
-      <div id="info-col">
-        <div id="result-info"></div>
-      </div>
-    </div>
-</div>
+<section class="section">
+  <div class="container" style="max-width: 48rem;">
+    <h1 class="title is-1 has-text-centered mb-5">hash-image</h1>
 
-<div id="preview-container">
-    <div id="preview-wrapper">
-        <canvas id="preview-bitmap"></canvas>
+    <div id="controls" class="box mb-5">
+        <div class="field">
+            <label for="hash-input" class="label">Find my hash image:</label>
+            <div class="columns is-mobile is-vcentered">
+                <div class="column is-two-thirds">
+                    <div class="control">
+                        <input type="text" id="hash-input" class="input" placeholder="Type text here...">
+                    </div>
+                </div>
+                <div class="column is-one-third">
+                    <div id="result-info" class="is-family-monospace is-size-7-mobile is-size-6-tablet"></div>
+                </div>
+            </div>
+        </div>
     </div>
-    <button id="download-btn">Download (PNG)</button>
-    <button id="color-picker-btn">Set Color</button>
-    <button id="invert-btn">Invert</button>
-</div>
 
-<div id="grid-container"></div>
+    <div class="columns is-centered mb-5">
+        <div class="column is-narrow has-text-centered">
+            <div id="preview-container" class="box is-inline-block">
+                <div id="preview-wrapper" class="mb-4" style="margin: 0 auto;">
+                    <canvas id="preview-bitmap"></canvas>
+                </div>
+                <div class="buttons is-centered">
+                    <button id="download-btn" class="button is-dark is-fullwidth">Download (PNG)</button>
+                    <button id="color-picker-btn" class="button is-light is-fullwidth">Set Color</button>
+                    <button id="invert-btn" class="button is-light is-fullwidth">Invert</button>
+                    <button id="audio-btn" class="button is-primary is-fullwidth">Generate Audio</button>
+                </div>
+                <audio id="audio-player" class="hidden mt-3" style="width: 12rem;" controls></audio>
+            </div>
+        </div>
+    </div>
+
+    <div id="grid-container" class="box"></div>
+  </div>
+</section>
 </body>
 </html>

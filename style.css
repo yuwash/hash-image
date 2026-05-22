@@ -1,53 +1,10 @@
-body {
-    font-family: sans-serif;
-    background-color: #f0f0f0;
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2rem;
-}
-
-#controls {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    width: 100%;
-    max-width: 35rem;
-    transition: opacity 0.3s ease;
-}
-
-#controls.disabled {
-    opacity: 0.5;
-}
-
-input[type="text"] {
-    padding: 1rem;
-    border-radius: 4px;
-}
-
-input:disabled, button:disabled {
-    cursor: not-allowed;
-}
-
-/* The large preview image */
-#preview-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
+/* Custom styling for the 3x3 bitmap layout and pixel rendering */
 
 #preview-wrapper {
-    position: relative; /* To position the label absolutely if needed, though we are stacking */
-    width: 10rem;
-    height: 10rem;
-    border: 2px solid #333; /* move border here */
+    position: relative;
+    width: 10.5rem;
+    height: 10.5rem;
+    border: 2px solid #333;
     padding: 2px;
 }
 
@@ -55,76 +12,38 @@ input:disabled, button:disabled {
     width: 10rem;
     height: 10rem;
     image-rendering: pixelated;
+    display: block;
 }
 
-/* New layout for input + info */
-#input-row {
-  display: flex;
-  width: 100%;
-  align-items: flex-start;
-}
-
-/* 2/3 for input, 1/3 for info */
-#input-col {
-  flex: 0 0 calc((100% / 3) * 2); /* 2/3 width */
-  display: flex;
-  flex-direction: column;
-}
-
-#info-col {
-  flex: 0 0 calc(100% / 3); /* 1/3 width */
-  display: flex;
-  align-items: center;
-}
-
-/* Text showing the Hex/Index result */
-#result-info {
-    font-family: monospace;
-    font-size: 0.9rem;
-    color: #555;
-    margin-left: 0.5rem;
-}
-
-/* Highlight last two hex digits */
-#result-info .last-two {
-  font-weight: bold;
-  color: #000;
-}
-
-/* The grid of all 256 images */
+/* Grid layout for 256 bitmaps */
 #grid-container {
     display: flex;
     flex-wrap: wrap;
-    width: fit-content;
-    max-width: 100%;
     gap: 8px;
     justify-content: center;
 }
 
-/* Small 2rem bitmaps in the grid */
-
-/* Container for label + small bitmap */
+/* Individual bitmap styles */
 .bitmap-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  cursor: pointer;
-  transition: transform 0.1s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
 }
 
 .bitmap-wrapper:hover {
-  transform: scale(1.1);
+    transform: scale(1.1);
 }
 
-/* Small bitmap box only */
 .bitmap {
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid #ccc;
-  display: flex;
-  flex-wrap: wrap;
-  box-sizing: border-box;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid #ccc;
+    display: flex;
+    flex-wrap: wrap;
+    box-sizing: border-box;
 }
 
 .pixel {
@@ -141,10 +60,28 @@ input:disabled, button:disabled {
     background-color: #fff0;
 }
 
-/* Index label (0-255) on top of the small images */
 .index-label {
-  font-size: 0.6rem;
-  color: rgba(0, 0, 0, 0.7);
-  font-weight: bold;
-  text-align: center;
+    font-size: 0.6rem;
+    color: rgba(0, 0, 0, 0.7);
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Highlight last two hex digits in result info */
+#result-info .last-two {
+    font-weight: bold;
+    color: #363636;
+}
+
+/* Active style for invert button to toggle visually in Bulma */
+.button.active {
+    background-color: #cbd5e1 !important;
+    border-color: #64748b !important;
+    color: #0f172a !important;
+    font-weight: bold;
+}
+
+/* Helper to hide element */
+.hidden {
+    display: none !important;
 }

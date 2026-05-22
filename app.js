@@ -5,6 +5,7 @@ let crc32Instance;
 
 // Import functions from hashImage.js
 import { getHashInfo, getPixelArray } from './hashImage.js';
+import { generateHashAudio } from './hashSound.js';
 
 async function initHasher() {
   if (window.hashwasm && window.hashwasm.createCRC32) {
@@ -23,6 +24,9 @@ let inputField;
 let colorPickerBtn;
 let invertBtn;
 let controls;
+let audioBtn;
+let audioPlayer;
+let audioUrl = null;
 let foregroundColor = 'black';
 let currentMode = 'input'; // 'input' or 'grid'
 let selectedImageIndex = null; // Track the selected image index
@@ -38,6 +42,8 @@ function initGlobals() {
   colorPickerBtn = document.getElementById('color-picker-btn');
   invertBtn = document.getElementById('invert-btn');
   controls = document.getElementById('controls');
+  audioBtn = document.getElementById('audio-btn');
+  audioPlayer = document.getElementById('audio-player');
 }
 
 const SCALE_UP = 10;
@@ -46,6 +52,21 @@ const canvasSize = 3 * SCALE_UP;
 function initCanvas() {
   largeBitmapCanvas.width = canvasSize;
   largeBitmapCanvas.height = canvasSize;
+}
+
+function resetAudio() {
+  if (audioUrl) {
+    URL.revokeObjectURL(audioUrl);
+    audioUrl = null;
+  }
+  if (audioPlayer) {
+    audioPlayer.src = '';
+    audioPlayer.classList.add('hidden');
+  }
+  if (audioBtn) {
+    audioBtn.disabled = false;
+    audioBtn.textContent = 'Generate Audio';
+  }
 }
 
 function createBitmap(index, cssClass, showIndex) {
@@ -109,6 +130,7 @@ function drawBitmapGrid() {
           inputField.disabled = true;
           updateUrlWithIndex(i);
           updateTitleAndHeader(i);
+          resetAudio();
       });
       gridContainer.appendChild(wrapper);
   }
@@ -118,6 +140,7 @@ function drawBitmapGrid() {
 async function handleInput(e) {
     const text = e.target.value;
     resultInfo.textContent = '';
+    resetAudio();
     if (!text) {
       return;
     }
@@ -167,6 +190,7 @@ function handleUrlNavigation() {
         inputField.disabled = false;
         drawCanvasBitmap(index);
         updateTitleAndHeader(index);
+        resetAudio();
       }
     }
   }
@@ -190,6 +214,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       currentMode = 'input';
       controls.classList.remove('disabled');
       inputField.disabled = false;
+      resetAudio();
       
       // Update preview with current input
       const text = inputField.value;
@@ -209,6 +234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   invertBtn.addEventListener('click', () => {
     isInverted = !isInverted;
     invertBtn.classList.toggle('active', isInverted);
+    resetAudio();
     
     // Redraw the current bitmap with inversion state
     const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
@@ -232,6 +258,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (indexToUse !== null) {
         drawCanvasBitmap(indexToUse);
       }
+    }
+  });
+
+  // Handle audio generation button click
+  audioBtn.addEventListener('click', async () => {
+    const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
+                      (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
+    
+    if (indexToUse === null) {
+      alert('Please enter text or click a grid image to generate a hash image first.');
+      return;
+    }
+
+    try {
+      audioBtn.classList.add('is-loading');
+      audioBtn.disabled = true;
+
+      // Flatten 3x3 pixel array (includes inversion state)
+      const pixelArray = getPixelArray(indexToUse, isInverted);
+      const bits = pixelArray.flat();
+
+      // Revoke old URL to avoid memory leaks
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+
+      // Generate WAV URL and set it to player
+      audioUrl = await generateHashAudio(bits);
+      audioPlayer.src = audioUrl;
+      audioPlayer.classList.remove('hidden');
+
+      // Attempt autoplay
+      try {
+        await audioPlayer.play();
+      } catch (playErr) {
+        console.log('Autoplay prevented by browser: ', playErr);
+      }
+    } catch (err) {
+      console.error('Failed to generate audio:', err);
+      alert('Could not generate audio. Please try again.');
+    } finally {
+      audioBtn.classList.remove('is-loading');
+      audioBtn.disabled = false;
+      audioBtn.textContent = 'Generate Audio';
     }
   });
 });
