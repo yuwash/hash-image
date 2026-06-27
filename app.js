@@ -33,7 +33,6 @@ let verticalFrequencySlider;
 let verticalFrequencyValue;
 let audioUrl = null;
 let currentMode = 'input'; // 'input' or 'grid'
-let selectedImageIndex = null; // Track the selected image index
 
 let activeTabId = 'tab-0';
 let tabsMap = {
@@ -41,16 +40,23 @@ let tabsMap = {
     foregroundColor: 'black',
     isInverted: false,
     fillFrequencyH: 0,
-    fillFrequencyV: 0
+    fillFrequencyV: 0,
+    index: null
   }
 };
 
 let renderingState = tabsMap[activeTabId];
 
 let tabLabel0;
+let addTabBtn;
+let tabsContainer;
+let tabCount = 1;
+let colorPicker;
 
 function initGlobals() {
   tabLabel0 = document.getElementById('tab-label-0');
+  addTabBtn = document.getElementById('add-tab-btn');
+  tabsContainer = document.getElementById('tabs-container').querySelector('ul');
   gridContainer = document.getElementById('grid-container');
   largeBitmapCanvas = document.getElementById('preview-bitmap');
   ctx = largeBitmapCanvas.getContext('2d');
@@ -105,14 +111,14 @@ function switchToTextInput() {
   if (text) {
     const hashInfo = getHashInfo(text, crc32Instance);
     if (hashInfo) {
-      selectedImageIndex = hashInfo.index; // Store the index from input
+      renderingState.index = hashInfo.index;
       drawCanvasBitmap(hashInfo.index);
       updateUrlWithIndex(hashInfo.index);
       updateTitleAndHeader(hashInfo.index);
     }
   } else {
     // If no text, clear preview canvas, URL, and header
-    selectedImageIndex = null;
+    renderingState.index = null;
     ctx.clearRect(0, 0, canvasSize, canvasSize);
     window.location.hash = '';
     document.title = 'hash-image';
@@ -151,11 +157,14 @@ function createBitmap(index, cssClass, showIndex) {
 }
 
 function drawCanvasBitmap(index) {
-    if (tabLabel0) {
-      tabLabel0.textContent = index !== null ? `Image ${index}` : 'No Image';
+    const activeTabLabel = document.getElementById(`tab-label-${activeTabId.split('-')[1]}`);
+    if (activeTabLabel) {
+      activeTabLabel.textContent = index !== null ? `Image ${index}` : 'No Image';
     }
-    const { foregroundColor, isInverted, fillFrequencyH, fillFrequencyV } = renderingState;
     ctx.clearRect(0, 0, canvasSize, canvasSize);
+    if (index === null) return;
+
+    const { foregroundColor, isInverted, fillFrequencyH, fillFrequencyV } = renderingState;
     const pixelArray = getPixelArray(index, isInverted);
 
     pixelArray.forEach((row, y) => {
@@ -165,39 +174,32 @@ function drawCanvasBitmap(index) {
             ctx.fillStyle = foregroundColor;
             ctx.fillRect(x * SCALE_UP, y * SCALE_UP, SCALE_UP, SCALE_UP);
           } else if (fillFrequencyH > 0 && fillFrequencyV === 0) {
+            ctx.fillStyle = foregroundColor;
             for (let i = 0; i < SCALE_UP; i++) {
               const xRel = i / SCALE_UP;
               const opacity = (-Math.cos(2 * Math.PI * fillFrequencyH * xRel) + 1) / 2;
-              ctx.save();
               ctx.globalAlpha = opacity;
-              ctx.fillStyle = foregroundColor;
               ctx.fillRect(x * SCALE_UP + i, y * SCALE_UP, 1, SCALE_UP);
-              ctx.restore();
             }
           } else if (fillFrequencyH === 0 && fillFrequencyV > 0) {
+            ctx.fillStyle = foregroundColor;
             for (let j = 0; j < SCALE_UP; j++) {
               const yRel = j / SCALE_UP;
               const opacity = (-Math.cos(2 * Math.PI * fillFrequencyV * yRel) + 1) / 2;
-              ctx.save();
               ctx.globalAlpha = opacity;
-              ctx.fillStyle = foregroundColor;
               ctx.fillRect(x * SCALE_UP, y * SCALE_UP + j, SCALE_UP, 1);
-              ctx.restore();
             }
           } else {
             // Both frequencies > 0
+            ctx.fillStyle = foregroundColor;
             for (let j = 0; j < SCALE_UP; j++) {
               const yRel = j / SCALE_UP;
               const opacityV = (-Math.cos(2 * Math.PI * fillFrequencyV * yRel) + 1) / 2;
               for (let i = 0; i < SCALE_UP; i++) {
                 const xRel = i / SCALE_UP;
                 const opacityH = (-Math.cos(2 * Math.PI * fillFrequencyH * xRel) + 1) / 2;
-
-                ctx.save();
                 ctx.globalAlpha = opacityH * opacityV;
-                ctx.fillStyle = foregroundColor;
                 ctx.fillRect(x * SCALE_UP + i, y * SCALE_UP + j, 1, 1);
-                ctx.restore();
               }
             }
           }
@@ -218,7 +220,7 @@ function drawBitmapGrid() {
       const wrapper = createBitmap(i, 'bitmap', true);
       wrapper.addEventListener('click', () => {
           currentMode = 'grid';
-          selectedImageIndex = i; // Store the selected index
+          renderingState.index = i;
           drawCanvasBitmap(i);
           controls.classList.add('disabled');
           inputField.disabled = true;
@@ -244,7 +246,7 @@ async function handleInput(e) {
       resultInfo.innerHTML =
         `Hash (CRC-32): ${hashInfo.base}<span class="last-two">${hashInfo.last}</span>`;
 
-      selectedImageIndex = hashInfo.index; // Store the index from input
+      renderingState.index = hashInfo.index;
       drawCanvasBitmap(hashInfo.index);
       updateUrlWithIndex(hashInfo.index);
       updateTitleAndHeader(hashInfo.index);
@@ -277,8 +279,8 @@ function handleUrlNavigation() {
     if (index >= 0 && index <= 255) {
       // ONLY reset to input mode if the index is different from what's already selected
       // or if we aren't already in grid mode.
-      if (selectedImageIndex !== index) {
-        selectedImageIndex = index;
+      if (renderingState.index !== index) {
+        renderingState.index = index;
         currentMode = 'input';
         controls.classList.remove('disabled');
         inputField.disabled = false;
@@ -302,11 +304,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderingState.fillFrequencyH = parseInt(e.target.value, 10);
     frequencyValue.textContent = renderingState.fillFrequencyH;
 
-    const indexToUse = selectedImageIndex !== null ? selectedImageIndex :
-                      (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
-
-    if (indexToUse !== null) {
-      drawCanvasBitmap(indexToUse);
+    if (renderingState.index !== null) {
+      drawCanvasBitmap(renderingState.index);
     }
   });
 
@@ -314,11 +313,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderingState.fillFrequencyV = parseInt(e.target.value, 10);
     verticalFrequencyValue.textContent = renderingState.fillFrequencyV;
 
-    const indexToUse = selectedImageIndex !== null ? selectedImageIndex :
-                      (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
-
-    if (indexToUse !== null) {
-      drawCanvasBitmap(indexToUse);
+    if (renderingState.index !== null) {
+      drawCanvasBitmap(renderingState.index);
     }
   });
 
@@ -339,35 +335,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     invertBtn.classList.toggle('active', renderingState.isInverted);
     resetAudio();
     
-    // Redraw the current bitmap with inversion state
-    const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
-                      (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
-    
-    if (indexToUse !== null) {
-      drawCanvasBitmap(indexToUse);
+    if (renderingState.index !== null) {
+      drawCanvasBitmap(renderingState.index);
     }
   });
 
-  const picker = new Picker({
+  colorPicker = new Picker({
     parent: colorPickerBtn,
     alpha: false,
     color: '#000000',
     onChange: function(color) {
       renderingState.foregroundColor = color.hex;
-      // Use the selected image index if available, otherwise use input-based index
-      const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
-                        (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
-      
-      if (indexToUse !== null) {
-        drawCanvasBitmap(indexToUse);
+      if (renderingState.index !== null) {
+        drawCanvasBitmap(renderingState.index);
       }
     }
   });
 
   // Handle audio generation button click
   audioBtn.addEventListener('click', async () => {
-    const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
-                      (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
+    const indexToUse = renderingState.index;
     
     if (indexToUse === null) {
       alert('Please enter text or click a grid image to generate a hash image first.');
@@ -415,8 +402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (downloadAudioBtn) {
     downloadAudioBtn.addEventListener('click', () => {
       if (audioUrl) {
-        const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
-                          (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : 'unknown');
+        const indexToUse = renderingState.index !== null ? renderingState.index : 'unknown';
         const a = document.createElement('a');
         a.href = audioUrl;
         a.download = `hash-audio-${indexToUse}.wav`;
@@ -436,5 +422,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         inputField.focus();
       }
     });
+  }
+
+  document.getElementById('tab-0').addEventListener('click', () => switchTab('tab-0'));
+
+  addTabBtn.addEventListener('click', () => {
+    const newTabId = `tab-${tabCount}`;
+    tabsMap[newTabId] = { ...renderingState };
+
+    const newTabLi = document.createElement('li');
+    newTabLi.id = newTabId;
+
+    const newTabA = document.createElement('a');
+    newTabA.id = `tab-label-${tabCount}`;
+    newTabA.textContent = renderingState.index !== null ? `Image ${renderingState.index}` : 'No Image';
+
+    newTabLi.appendChild(newTabA);
+    tabsContainer.insertBefore(newTabLi, addTabBtn.parentElement);
+
+    newTabLi.addEventListener('click', () => switchTab(newTabId));
+
+    tabCount++;
+    switchTab(newTabId);
+  });
+
+  function switchTab(tabId) {
+    activeTabId = tabId;
+    renderingState = tabsMap[tabId];
+
+    // Update active tab UI
+    tabsContainer.querySelectorAll('li').forEach(li => {
+      li.classList.toggle('is-active', li.id === tabId);
+    });
+
+    // Sync sliders and color picker with the new tab state
+    frequencySlider.value = renderingState.fillFrequencyH;
+    frequencyValue.textContent = renderingState.fillFrequencyH;
+    verticalFrequencySlider.value = renderingState.fillFrequencyV;
+    verticalFrequencyValue.textContent = renderingState.fillFrequencyV;
+    invertBtn.classList.toggle('active', renderingState.isInverted);
+    colorPicker.setColor(renderingState.foregroundColor, true);
+
+    drawCanvasBitmap(renderingState.index);
+    if (renderingState.index !== null) {
+      updateUrlWithIndex(renderingState.index);
+      updateTitleAndHeader(renderingState.index);
+    } else {
+      window.location.hash = '';
+      document.title = 'hash-image';
+      document.querySelector('h1').textContent = 'hash-image';
+    }
   }
 });
