@@ -35,14 +35,22 @@ let audioUrl = null;
 let currentMode = 'input'; // 'input' or 'grid'
 let selectedImageIndex = null; // Track the selected image index
 
-let renderingState = {
-  foregroundColor: 'black',
-  isInverted: false,
-  fillFrequencyH: 0,
-  fillFrequencyV: 0
+let activeTabId = 'tab-0';
+let tabsMap = {
+  'tab-0': {
+    foregroundColor: 'black',
+    isInverted: false,
+    fillFrequencyH: 0,
+    fillFrequencyV: 0
+  }
 };
 
+let renderingState = tabsMap[activeTabId];
+
+let tabLabel0;
+
 function initGlobals() {
+  tabLabel0 = document.getElementById('tab-label-0');
   gridContainer = document.getElementById('grid-container');
   largeBitmapCanvas = document.getElementById('preview-bitmap');
   ctx = largeBitmapCanvas.getContext('2d');
@@ -143,6 +151,9 @@ function createBitmap(index, cssClass, showIndex) {
 }
 
 function drawCanvasBitmap(index) {
+    if (tabLabel0) {
+      tabLabel0.textContent = index !== null ? `Image ${index}` : 'No Image';
+    }
     const { foregroundColor, isInverted, fillFrequencyH, fillFrequencyV } = renderingState;
     ctx.clearRect(0, 0, canvasSize, canvasSize);
     const pixelArray = getPixelArray(index, isInverted);
