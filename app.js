@@ -126,7 +126,7 @@ function switchToTextInput() {
   }
 }
 
-function createBitmap(index, cssClass, showIndex) {
+function createBitmap(index, cssClass, showIndex, isGallery = false) {
   // Container for label + bitmap
   const wrapper = document.createElement('div');
   wrapper.className = 'bitmap-wrapper';
@@ -140,6 +140,10 @@ function createBitmap(index, cssClass, showIndex) {
 
   const bitmapDiv = document.createElement('div');
   bitmapDiv.className = cssClass;
+  if (isGallery) {
+    bitmapDiv.style.width = '2rem';
+    bitmapDiv.style.height = '2rem';
+  }
 
   const pixelArray = getPixelArray(index);
 
@@ -156,17 +160,26 @@ function createBitmap(index, cssClass, showIndex) {
   return wrapper;
 }
 
-function drawCanvasBitmap(index) {
-    const activeTabIdNum = activeTabId.split('-')[1];
-    const activeTabLabel = document.getElementById(`tab-label-${activeTabIdNum}`);
-    if (activeTabLabel) {
-      activeTabLabel.textContent = index !== null ? `Image ${index}` : 'No Image';
+function drawCanvasBitmap(index, clear = true, stateOverride = null) {
+    const state = stateOverride || renderingState;
+
+    // Only update tab label if we are drawing for the active tab without override
+    if (!stateOverride) {
+      const activeTabIdNum = activeTabId.split('-')[1];
+      const activeTabLabel = document.getElementById(`tab-label-${activeTabIdNum}`);
+      if (activeTabLabel) {
+        activeTabLabel.textContent = index !== null ? `Image ${index}` : 'No Image';
+      }
     }
+
     ctx.globalAlpha = 1.0;
-    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    if (clear) {
+      ctx.clearRect(0, 0, canvasSize, canvasSize);
+    }
+
     if (index === null) return;
 
-    const { foregroundColor, isInverted, fillFrequencyH, fillFrequencyV } = renderingState;
+    const { foregroundColor, isInverted, fillFrequencyH, fillFrequencyV } = state;
     const pixelArray = getPixelArray(index, isInverted);
 
     pixelArray.forEach((row, y) => {
@@ -219,7 +232,7 @@ function updateTitleAndHeader(index) {
 // 1. Generate the grid of 256 images
 function drawBitmapGrid() {
   for (let i = 0; i <= 255; i++) {
-      const wrapper = createBitmap(i, 'bitmap', true);
+      const wrapper = createBitmap(i, 'bitmap', true, true);
       wrapper.addEventListener('click', () => {
           currentMode = 'grid';
           renderingState.index = i;
@@ -356,6 +369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Handle audio generation button click
   audioBtn.addEventListener('click', async () => {
+    if (activeTabId === 'tab-mix') return;
     const indexToUse = renderingState.index;
     
     if (indexToUse === null) {
@@ -478,6 +492,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     switchTab(newTabId);
   });
 
+  document.getElementById('tab-mix').addEventListener('click', () => switchTab('tab-mix'));
+
+  function drawMixCanvas() {
+    ctx.globalAlpha = 1.0;
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    ctx.globalCompositeOperation = 'lighter';
+
+    for (const tabId in tabsMap) {
+      const state = tabsMap[tabId];
+      if (state.index !== null) {
+        drawCanvasBitmap(state.index, false, state);
+      }
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
   function closeTab(tabId) {
     const tabIds = Object.keys(tabsMap);
     if (tabIds.length <= 1) return;
@@ -491,16 +522,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     delete tabsMap[tabId];
     const tabElem = document.getElementById(tabId);
     if (tabElem) tabElem.remove();
+
+    if (activeTabId === 'tab-mix') {
+      drawMixCanvas();
+    }
   }
 
   function switchTab(tabId) {
     activeTabId = tabId;
-    renderingState = tabsMap[tabId];
 
     // Update active tab UI
     tabsContainer.querySelectorAll('li').forEach(li => {
       li.classList.toggle('is-active', li.id === tabId);
     });
+
+    if (tabId === 'tab-mix') {
+      // Hide most controls except download and preview
+      inputField.disabled = true;
+      controls.classList.add('disabled');
+      resultInfo.classList.add('hidden');
+      gridContainer.classList.add('hidden');
+      colorPickerBtn.classList.add('hidden');
+      invertBtn.classList.add('hidden');
+      audioBtn.classList.add('hidden');
+      audioPlayer.classList.add('hidden');
+      downloadAudioBtn.classList.add('hidden');
+      frequencySlider.closest('.field').classList.add('hidden');
+      verticalFrequencySlider.closest('.field').classList.add('hidden');
+
+      drawMixCanvas();
+
+      window.location.hash = '';
+      document.title = 'hash-image Mix';
+      document.querySelector('h1').textContent = 'hash-image Mix';
+      return;
+    }
+
+    // Show controls for normal tabs
+    inputField.disabled = false;
+    controls.classList.remove('disabled');
+    resultInfo.classList.remove('hidden');
+    gridContainer.classList.remove('hidden');
+    colorPickerBtn.classList.remove('hidden');
+    invertBtn.classList.remove('hidden');
+    audioBtn.classList.remove('hidden');
+    frequencySlider.closest('.field').classList.remove('hidden');
+    verticalFrequencySlider.closest('.field').classList.remove('hidden');
+
+    renderingState = tabsMap[tabId];
 
     // Sync sliders and color picker with the new tab state
     frequencySlider.value = renderingState.fillFrequencyH;
