@@ -39,6 +39,19 @@ window.UPNG = pdfLibupng;
     <div class="columns is-centered mb-5">
         <div class="column is-narrow has-text-centered">
             <div id="preview-container" class="box is-inline-block">
+                <div id="tabs-container" class="tabs is-boxed is-centered mb-4">
+                    <ul>
+                        <li id="tab-0" class="is-active tab-item">
+                            <a class="is-flex is-align-items-center">
+                                <span id="tab-label-0" class="tab-click-area">No Image</span>
+                                <button class="delete is-small ml-2 close-tab-btn" data-tab-id="tab-0"></button>
+                            </a>
+                        </li>
+                        <li>
+                            <a id="add-tab-btn">+</a>
+                        </li>
+                    </ul>
+                </div>
                 <div id="preview-wrapper" class="mb-4" style="margin: 0 auto;">
                     <canvas id="preview-bitmap"></canvas>
                 </div>
@@ -47,6 +60,18 @@ window.UPNG = pdfLibupng;
                     <button id="color-picker-btn" class="button is-light is-fullwidth">Set Color</button>
                     <button id="invert-btn" class="button is-light is-fullwidth">Invert</button>
                     <button id="audio-btn" class="button is-primary is-fullwidth">Generate Audio</button>
+                </div>
+                <div class="field mt-4">
+                    <label class="label has-text-left">Horizontal Fill Frequency: <span id="frequency-value">0</span></label>
+                    <div class="control">
+                        <input id="frequency-slider" type="range" min="0" max="8" step="1" value="0">
+                    </div>
+                </div>
+                <div class="field mt-4">
+                    <label class="label has-text-left">Vertical Fill Frequency: <span id="vertical-frequency-value">0</span></label>
+                    <div class="control">
+                        <input id="vertical-frequency-slider" type="range" min="0" max="8" step="1" value="0">
+                    </div>
                 </div>
                 <audio id="audio-player" class="hidden mt-3" style="width: 12rem;" controls></audio>
                 <button id="download-audio-btn" class="button is-link is-fullwidth hidden mt-2">Download (WAV)</button>
