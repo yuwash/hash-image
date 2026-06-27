@@ -32,12 +32,15 @@ let frequencyValue;
 let verticalFrequencySlider;
 let verticalFrequencyValue;
 let audioUrl = null;
-let foregroundColor = 'black';
 let currentMode = 'input'; // 'input' or 'grid'
 let selectedImageIndex = null; // Track the selected image index
-let isInverted = false; // Track whether inversion is enabled
-let fillFrequencyH = 0;
-let fillFrequencyV = 0;
+
+let renderingState = {
+  foregroundColor: 'black',
+  isInverted: false,
+  fillFrequencyH: 0,
+  fillFrequencyV: 0
+};
 
 function initGlobals() {
   gridContainer = document.getElementById('grid-container');
@@ -140,6 +143,7 @@ function createBitmap(index, cssClass, showIndex) {
 }
 
 function drawCanvasBitmap(index) {
+    const { foregroundColor, isInverted, fillFrequencyH, fillFrequencyV } = renderingState;
     ctx.clearRect(0, 0, canvasSize, canvasSize);
     const pixelArray = getPixelArray(index, isInverted);
 
@@ -284,8 +288,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   downloadBtn.addEventListener('click', handleDownload);
 
   frequencySlider.addEventListener('input', (e) => {
-    fillFrequencyH = parseInt(e.target.value, 10);
-    frequencyValue.textContent = fillFrequencyH;
+    renderingState.fillFrequencyH = parseInt(e.target.value, 10);
+    frequencyValue.textContent = renderingState.fillFrequencyH;
 
     const indexToUse = selectedImageIndex !== null ? selectedImageIndex :
                       (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
@@ -296,8 +300,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   verticalFrequencySlider.addEventListener('input', (e) => {
-    fillFrequencyV = parseInt(e.target.value, 10);
-    verticalFrequencyValue.textContent = fillFrequencyV;
+    renderingState.fillFrequencyV = parseInt(e.target.value, 10);
+    verticalFrequencyValue.textContent = renderingState.fillFrequencyV;
 
     const indexToUse = selectedImageIndex !== null ? selectedImageIndex :
                       (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
@@ -320,8 +324,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Handle invert button click
   invertBtn.addEventListener('click', () => {
-    isInverted = !isInverted;
-    invertBtn.classList.toggle('active', isInverted);
+    renderingState.isInverted = !renderingState.isInverted;
+    invertBtn.classList.toggle('active', renderingState.isInverted);
     resetAudio();
     
     // Redraw the current bitmap with inversion state
@@ -338,7 +342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     alpha: false,
     color: '#000000',
     onChange: function(color) {
-      foregroundColor = color.hex;
+      renderingState.foregroundColor = color.hex;
       // Use the selected image index if available, otherwise use input-based index
       const indexToUse = selectedImageIndex !== null ? selectedImageIndex : 
                         (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
@@ -364,7 +368,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       audioBtn.disabled = true;
 
       // Flatten 3x3 pixel array (includes inversion state)
-      const pixelArray = getPixelArray(indexToUse, isInverted);
+      const pixelArray = getPixelArray(indexToUse, renderingState.isInverted);
       const bits = pixelArray.flat();
 
       // Revoke old URL to avoid memory leaks
