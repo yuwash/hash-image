@@ -41,8 +41,11 @@ window.UPNG = pdfLibupng;
             <div id="preview-container" class="box is-inline-block">
                 <div id="tabs-container" class="tabs is-boxed is-centered mb-4">
                     <ul>
-                        <li id="tab-0" class="is-active">
-                            <a id="tab-label-0">No Image</a>
+                        <li id="tab-0" class="is-active tab-item">
+                            <a class="is-flex is-align-items-center">
+                                <span id="tab-label-0" class="tab-click-area">No Image</span>
+                                <button class="delete is-small ml-2 close-tab-btn" data-tab-id="tab-0"></button>
+                            </a>
                         </li>
                         <li>
                             <a id="add-tab-btn">+</a>

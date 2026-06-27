@@ -106,3 +106,19 @@ input:disabled {
 #frequency-slider, #vertical-frequency-slider {
     width: 100%;
 }
+
+.tab-item .delete {
+    visibility: visible;
+}
+
+/* Hide close button when there's only one tab */
+.tab-item:first-child:nth-last-child(2) .close-tab-btn {
+    display: none;
+}
+
+.tab-click-area {
+    display: inline-block;
+    height: 100%;
+    flex-grow: 1;
+    cursor: pointer;
+}

@@ -119,7 +119,7 @@ function switchToTextInput() {
   } else {
     // If no text, clear preview canvas, URL, and header
     renderingState.index = null;
-    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    drawCanvasBitmap(null);
     window.location.hash = '';
     document.title = 'hash-image';
     document.querySelector('h1').textContent = 'hash-image';
@@ -157,10 +157,12 @@ function createBitmap(index, cssClass, showIndex) {
 }
 
 function drawCanvasBitmap(index) {
-    const activeTabLabel = document.getElementById(`tab-label-${activeTabId.split('-')[1]}`);
+    const activeTabIdNum = activeTabId.split('-')[1];
+    const activeTabLabel = document.getElementById(`tab-label-${activeTabIdNum}`);
     if (activeTabLabel) {
       activeTabLabel.textContent = index !== null ? `Image ${index}` : 'No Image';
     }
+    ctx.globalAlpha = 1.0;
     ctx.clearRect(0, 0, canvasSize, canvasSize);
     if (index === null) return;
 
@@ -424,7 +426,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  document.getElementById('tab-0').addEventListener('click', () => switchTab('tab-0'));
+  document.getElementById('tab-0').querySelector('.tab-click-area').addEventListener('click', (e) => {
+    e.preventDefault();
+    switchTab('tab-0');
+  });
+
+  document.getElementById('tab-0').querySelector('.close-tab-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeTab('tab-0');
+  });
 
   addTabBtn.addEventListener('click', () => {
     const newTabId = `tab-${tabCount}`;
@@ -432,19 +443,55 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const newTabLi = document.createElement('li');
     newTabLi.id = newTabId;
+    newTabLi.className = 'tab-item';
 
-    const newTabA = document.createElement('a');
-    newTabA.id = `tab-label-${tabCount}`;
-    newTabA.textContent = renderingState.index !== null ? `Image ${renderingState.index}` : 'No Image';
+    const a = document.createElement('a');
+    a.className = 'is-flex is-align-items-center';
 
-    newTabLi.appendChild(newTabA);
+    const span = document.createElement('span');
+    span.id = `tab-label-${tabCount}`;
+    span.className = 'tab-click-area';
+    span.textContent = renderingState.index !== null ? `Image ${renderingState.index}` : 'No Image';
+
+    const btn = document.createElement('button');
+    btn.className = 'delete is-small ml-2 close-tab-btn';
+    btn.dataset.tabId = newTabId;
+
+    a.appendChild(span);
+    a.appendChild(btn);
+    newTabLi.appendChild(a);
+
     tabsContainer.insertBefore(newTabLi, addTabBtn.parentElement);
 
-    newTabLi.addEventListener('click', () => switchTab(newTabId));
+    span.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchTab(newTabId);
+    });
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeTab(newTabId);
+    });
 
     tabCount++;
     switchTab(newTabId);
   });
+
+  function closeTab(tabId) {
+    const tabIds = Object.keys(tabsMap);
+    if (tabIds.length <= 1) return;
+
+    if (activeTabId === tabId) {
+      const currentIndex = tabIds.indexOf(tabId);
+      const newActiveTabId = tabIds[currentIndex - 1] || tabIds[currentIndex + 1];
+      switchTab(newActiveTabId);
+    }
+
+    delete tabsMap[tabId];
+    const tabElem = document.getElementById(tabId);
+    if (tabElem) tabElem.remove();
+  }
 
   function switchTab(tabId) {
     activeTabId = tabId;
