@@ -103,6 +103,6 @@ input:disabled {
     cursor: pointer;
 }
 
-#frequency-slider {
+#frequency-slider, #vertical-frequency-slider {
     width: 100%;
 }

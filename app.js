@@ -29,12 +29,15 @@ let audioPlayer;
 let downloadAudioBtn;
 let frequencySlider;
 let frequencyValue;
+let verticalFrequencySlider;
+let verticalFrequencyValue;
 let audioUrl = null;
 let foregroundColor = 'black';
 let currentMode = 'input'; // 'input' or 'grid'
 let selectedImageIndex = null; // Track the selected image index
 let isInverted = false; // Track whether inversion is enabled
-let fillFrequency = 0;
+let fillFrequencyH = 0;
+let fillFrequencyV = 0;
 
 function initGlobals() {
   gridContainer = document.getElementById('grid-container');
@@ -51,6 +54,8 @@ function initGlobals() {
   downloadAudioBtn = document.getElementById('download-audio-btn');
   frequencySlider = document.getElementById('frequency-slider');
   frequencyValue = document.getElementById('frequency-value');
+  verticalFrequencySlider = document.getElementById('vertical-frequency-slider');
+  verticalFrequencyValue = document.getElementById('vertical-frequency-value');
 }
 
 const SCALE_UP = 120;
@@ -141,19 +146,44 @@ function drawCanvasBitmap(index) {
     pixelArray.forEach((row, y) => {
       row.forEach((pixelValue, x) => {
         if (pixelValue === 1) {
-          if (fillFrequency === 0) {
+          if (fillFrequencyH === 0 && fillFrequencyV === 0) {
             ctx.fillStyle = foregroundColor;
             ctx.fillRect(x * SCALE_UP, y * SCALE_UP, SCALE_UP, SCALE_UP);
-          } else {
+          } else if (fillFrequencyH > 0 && fillFrequencyV === 0) {
             for (let i = 0; i < SCALE_UP; i++) {
               const xRel = i / SCALE_UP;
-              const opacity = (-Math.cos(2 * Math.PI * fillFrequency * xRel) + 1) / 2;
-
+              const opacity = (-Math.cos(2 * Math.PI * fillFrequencyH * xRel) + 1) / 2;
               ctx.save();
               ctx.globalAlpha = opacity;
               ctx.fillStyle = foregroundColor;
               ctx.fillRect(x * SCALE_UP + i, y * SCALE_UP, 1, SCALE_UP);
               ctx.restore();
+            }
+          } else if (fillFrequencyH === 0 && fillFrequencyV > 0) {
+            for (let j = 0; j < SCALE_UP; j++) {
+              const yRel = j / SCALE_UP;
+              const opacity = (-Math.cos(2 * Math.PI * fillFrequencyV * yRel) + 1) / 2;
+              ctx.save();
+              ctx.globalAlpha = opacity;
+              ctx.fillStyle = foregroundColor;
+              ctx.fillRect(x * SCALE_UP, y * SCALE_UP + j, SCALE_UP, 1);
+              ctx.restore();
+            }
+          } else {
+            // Both frequencies > 0
+            for (let j = 0; j < SCALE_UP; j++) {
+              const yRel = j / SCALE_UP;
+              const opacityV = (-Math.cos(2 * Math.PI * fillFrequencyV * yRel) + 1) / 2;
+              for (let i = 0; i < SCALE_UP; i++) {
+                const xRel = i / SCALE_UP;
+                const opacityH = (-Math.cos(2 * Math.PI * fillFrequencyH * xRel) + 1) / 2;
+
+                ctx.save();
+                ctx.globalAlpha = opacityH * opacityV;
+                ctx.fillStyle = foregroundColor;
+                ctx.fillRect(x * SCALE_UP + i, y * SCALE_UP + j, 1, 1);
+                ctx.restore();
+              }
             }
           }
         }
@@ -254,8 +284,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   downloadBtn.addEventListener('click', handleDownload);
 
   frequencySlider.addEventListener('input', (e) => {
-    fillFrequency = parseInt(e.target.value, 10);
-    frequencyValue.textContent = fillFrequency;
+    fillFrequencyH = parseInt(e.target.value, 10);
+    frequencyValue.textContent = fillFrequencyH;
+
+    const indexToUse = selectedImageIndex !== null ? selectedImageIndex :
+                      (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
+
+    if (indexToUse !== null) {
+      drawCanvasBitmap(indexToUse);
+    }
+  });
+
+  verticalFrequencySlider.addEventListener('input', (e) => {
+    fillFrequencyV = parseInt(e.target.value, 10);
+    verticalFrequencyValue.textContent = fillFrequencyV;
 
     const indexToUse = selectedImageIndex !== null ? selectedImageIndex :
                       (inputField.value ? getHashInfo(inputField.value, crc32Instance)?.index : null);
