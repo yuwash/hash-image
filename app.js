@@ -2,16 +2,19 @@
 // The UMD build exposes createCRC32 or similar depending on version, 
 // usually we access the global object. Based on standard UMD usage for this lib:
 let crc32Instance;
-
-// Import functions from hashImage.js
-import { getHashInfo, getPixelArray, getPixelOpacityMap } from './hashImage.js';
-import { generateHashAudio } from './hashSound.js';
+let sha256Instance; // New instance for SHA-256
 
 async function initHasher() {
   if (window.hashwasm && window.hashwasm.createCRC32) {
     crc32Instance = await window.hashwasm.createCRC32();
   } else {
     console.error('hash-wasm not loaded or createCRC32 not available');
+  }
+  // Initialize SHA-256 instance
+  if (window.hashwasm && window.hashwasm.createSHA256) {
+    sha256Instance = await window.hashwasm.createSHA256();
+  } else {
+    console.error('hash-wasm not loaded or createSHA256 not available');
   }
 }
 
@@ -53,6 +56,9 @@ let tabsContainer;
 let tabCount = 1;
 let colorPicker;
 
+// State variable for selected hash method
+let selectedHashMethod = 'crc32';
+
 function initGlobals() {
   tabLabel0 = document.getElementById('tab-label-0');
   addTabBtn = document.getElementById('add-tab-btn');
@@ -73,6 +79,18 @@ function initGlobals() {
   frequencyValue = document.getElementById('frequency-value');
   verticalFrequencySlider = document.getElementById('vertical-frequency-slider');
   verticalFrequencyValue = document.getElementById('vertical-frequency-value');
+
+  // Get the dropdown element and add event listener
+  const hashMethodDropdown = document.getElementById('hash-method-dropdown');
+  if (hashMethodDropdown) {
+    hashMethodDropdown.addEventListener('change', (e) => {
+      selectedHashMethod = e.target.value;
+      // Re-calculate hash if there's input text
+      if (inputField.value) {
+        handleInput({ target: inputField });
+      }
+    });
+  }
 }
 
 const SCALE_UP = 120;
@@ -383,38 +401,55 @@ async function handleInput(e) {
       return;
     }
 
-    const hashInfo = getHashInfo(text, crc32Instance);
-    if (hashInfo) {
-      // Extract all four pairs of hex digits
-      const crcHex = hashInfo.base; // This should be the full 8-digit hex string
+    let hashInfo = null;
+    let hashHex = '';
+    let numPairs = 0;
+
+    if (selectedHashMethod === 'crc32') {
+      hashInfo = getHashInfo(text, crc32Instance);
+      if (hashInfo) {
+        hashHex = hashInfo.base; // This should be the full 8-digit hex string
+        numPairs = 4; // CRC-32 has 8 hex digits, so 4 pairs
+      }
+    } else if (selectedHashMethod === 'sha256') {
+      if (!sha256Instance) {
+        console.error('SHA-256 instance not available.');
+        return;
+      }
+      sha256Instance.init();
+      const uint8Array = new TextEncoder().encode(text);
+      sha256Instance.update(uint8Array);
+      hashHex = sha256Instance.digest('hex');
+      numPairs = 32; // SHA-256 has 64 hex digits, so 32 pairs
+    } else {
+      console.warn(`Hash method "${selectedHashMethod}" not implemented.`);
+      return;
+    }
+
+    if (hashInfo || hashHex) {
       const indexes = [];
+      let rubyHtml = '';
 
       // Process 2 hex digits at a time to get the index for each pair
-      for (let i = 0; i < crcHex.length; i += 2) {
-        const pair = crcHex.substring(i, i + 2);
+      for (let i = 0; i < hashHex.length; i += 2) {
+        const pair = hashHex.substring(i, i + 2);
         const decimal = parseInt(pair, 16);
         indexes.push(decimal);
+        rubyHtml += `<ruby>${pair}<rt>${decimal}</rt></ruby>`;
       }
-      indexes.push(hashInfo.index);  // the last one.
       
       // Replace the current indexes list with the new ones
       renderingState.indexes = indexes;
 
-      // Format CRC-32 with ruby tags for decimal values
-      let rubyHtml = '';
-      for (let i = 0; i < crcHex.length; i += 2) {
-        const pair = crcHex.substring(i, i + 2);
-        const decimal = parseInt(pair, 16);
-        rubyHtml += `<ruby>${pair}<rt>${decimal}</rt></ruby>`;
-      }
-      const lastDecimal = parseInt(hashInfo.last, 16);
-      const lastRubyHtml = `<ruby>${hashInfo.last}<rt>${lastDecimal}</rt></ruby>`;
-      
-      resultInfo.innerHTML = `Hash (CRC-32): ${rubyHtml}<span class="last-two">${lastRubyHtml}</span>`;
+      // Update resultInfo to show "Hash:" and the generated hash
+      resultInfo.innerHTML = `Hash: ${rubyHtml}`;
 
       drawCanvasBitmap();
       updateUrlWithIndexes(renderingState.indexes);
-      updateTitleAndHeader(hashInfo.index);
+      // For SHA-256, the last index is derived from the last pair of hex digits.
+      // For CRC-32, hashInfo.index is already the last index.
+      const lastIndex = selectedHashMethod === 'crc32' ? hashInfo.index : indexes[indexes.length - 1];
+      updateTitleAndHeader(lastIndex);
       updateTagsList();
     }
 }
