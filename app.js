@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       // Generate WAV URL and set it to player
-      audioUrl = await generateHashAudio(bits);
+      audioUrl = await generateHashAudio(bits, renderingState.fillFrequencyH, renderingState.fillFrequencyV);
       audioPlayer.src = audioUrl;
       audioPlayer.classList.remove('hidden');
       if (downloadAudioBtn) {
