@@ -52,5 +52,27 @@ function getPixelArray(index, invert = false) {
   return pixelArray;
 }
 
+function getPixelOpacityMap(scaleUp, fillFrequencyH, fillFrequencyV) {
+  const map = [];
+  for (let j = 0; j < scaleUp; j++) {
+    const row = [];
+    const yRel = j / scaleUp;
+    const opacityV = fillFrequencyV > 0
+      ? (-Math.cos(2 * Math.PI * fillFrequencyV * yRel) + 1) / 2
+      : 1;
+
+    for (let i = 0; i < scaleUp; i++) {
+      const xRel = i / scaleUp;
+      const opacityH = fillFrequencyH > 0
+        ? (-Math.cos(2 * Math.PI * fillFrequencyH * xRel) + 1) / 2
+        : 1;
+
+      row.push(opacityH * opacityV);
+    }
+    map.push(row);
+  }
+  return map;
+}
+
 // Export functions for use in other modules
-export { getHashInfo, getPixelArray };
+export { getHashInfo, getPixelArray, getPixelOpacityMap };

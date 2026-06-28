@@ -4,7 +4,7 @@
 let crc32Instance;
 
 // Import functions from hashImage.js
-import { getHashInfo, getPixelArray } from './hashImage.js';
+import { getHashInfo, getPixelArray, getPixelOpacityMap } from './hashImage.js';
 import { generateHashAudio } from './hashSound.js';
 
 async function initHasher() {
@@ -181,40 +181,34 @@ function drawCanvasBitmap(index, clear = true, stateOverride = null) {
 
     const { foregroundColor, isInverted, fillFrequencyH, fillFrequencyV } = state;
     const pixelArray = getPixelArray(index, isInverted);
+    const opacityMap = getPixelOpacityMap(SCALE_UP, fillFrequencyH, fillFrequencyV);
+
+    ctx.fillStyle = foregroundColor;
 
     pixelArray.forEach((row, y) => {
       row.forEach((pixelValue, x) => {
         if (pixelValue === 1) {
+          const startX = x * SCALE_UP;
+          const startY = y * SCALE_UP;
+
           if (fillFrequencyH === 0 && fillFrequencyV === 0) {
-            ctx.fillStyle = foregroundColor;
-            ctx.fillRect(x * SCALE_UP, y * SCALE_UP, SCALE_UP, SCALE_UP);
+            ctx.globalAlpha = 1.0;
+            ctx.fillRect(startX, startY, SCALE_UP, SCALE_UP);
           } else if (fillFrequencyH > 0 && fillFrequencyV === 0) {
-            ctx.fillStyle = foregroundColor;
             for (let i = 0; i < SCALE_UP; i++) {
-              const xRel = i / SCALE_UP;
-              const opacity = (-Math.cos(2 * Math.PI * fillFrequencyH * xRel) + 1) / 2;
-              ctx.globalAlpha = opacity;
-              ctx.fillRect(x * SCALE_UP + i, y * SCALE_UP, 1, SCALE_UP);
+              ctx.globalAlpha = opacityMap[0][i];
+              ctx.fillRect(startX + i, startY, 1, SCALE_UP);
             }
           } else if (fillFrequencyH === 0 && fillFrequencyV > 0) {
-            ctx.fillStyle = foregroundColor;
             for (let j = 0; j < SCALE_UP; j++) {
-              const yRel = j / SCALE_UP;
-              const opacity = (-Math.cos(2 * Math.PI * fillFrequencyV * yRel) + 1) / 2;
-              ctx.globalAlpha = opacity;
-              ctx.fillRect(x * SCALE_UP, y * SCALE_UP + j, SCALE_UP, 1);
+              ctx.globalAlpha = opacityMap[j][0];
+              ctx.fillRect(startX, startY + j, SCALE_UP, 1);
             }
           } else {
-            // Both frequencies > 0
-            ctx.fillStyle = foregroundColor;
             for (let j = 0; j < SCALE_UP; j++) {
-              const yRel = j / SCALE_UP;
-              const opacityV = (-Math.cos(2 * Math.PI * fillFrequencyV * yRel) + 1) / 2;
               for (let i = 0; i < SCALE_UP; i++) {
-                const xRel = i / SCALE_UP;
-                const opacityH = (-Math.cos(2 * Math.PI * fillFrequencyH * xRel) + 1) / 2;
-                ctx.globalAlpha = opacityH * opacityV;
-                ctx.fillRect(x * SCALE_UP + i, y * SCALE_UP + j, 1, 1);
+                ctx.globalAlpha = opacityMap[j][i];
+                ctx.fillRect(startX + i, startY + j, 1, 1);
               }
             }
           }
