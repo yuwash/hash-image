@@ -258,8 +258,20 @@ async function handleInput(e) {
 
     const hashInfo = getHashInfo(text, crc32Instance);
     if (hashInfo) {
-      resultInfo.innerHTML =
-        `Hash (CRC-32): ${hashInfo.base}<span class="last-two">${hashInfo.last}</span>`;
+      // Format CRC-32 with ruby tags for decimal values
+      const crcHex = hashInfo.base;
+      let rubyHtml = '';
+      
+      // Process 2 hex digits at a time
+      for (let i = 0; i < crcHex.length; i += 2) {
+        const pair = crcHex.substring(i, i + 2);
+        const decimal = parseInt(pair, 16);
+        rubyHtml += `<ruby>${pair}<rt>${decimal}</rt></ruby>`;
+      }
+      const lastDecimal = parseInt(hashInfo.last, 16);
+      const lastRubyHtml = `<ruby>${hashInfo.last}<rt>${lastDecimal}</rt></ruby>`;
+      
+      resultInfo.innerHTML = `Hash (CRC-32): ${rubyHtml}<span class="last-two">${lastRubyHtml}</span>`;
 
       renderingState.index = hashInfo.index;
       drawCanvasBitmap(hashInfo.index);
