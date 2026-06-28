@@ -41,7 +41,7 @@ let tabsMap = {
     isInverted: false,
     fillFrequencyH: 0,
     fillFrequencyV: 0,
-    index: null
+    indexes: []
   }
 };
 
@@ -101,6 +101,93 @@ function resetAudio() {
   }
 }
 
+function updateTabLabel(tabId) {
+  const state = tabsMap[tabId];
+  if (!state) return;
+  
+  let labelText = 'No Image';
+  if (state.indexes && state.indexes.length > 0) {
+    labelText = `Image ${state.indexes[0]}`;
+    if (state.indexes.length > 1) {
+      labelText += '…';
+    }
+  }
+  
+  const tabIdNum = tabId.split('-')[1];
+  const tabLabel = document.getElementById(`tab-label-${tabIdNum}`);
+  if (tabLabel) {
+    tabLabel.textContent = labelText;
+  }
+}
+
+function updateTagsList() {
+  const container = document.getElementById('image-tags-list');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (activeTabId === 'tab-mix') {
+    container.classList.add('hidden');
+    return;
+  }
+  
+  container.classList.remove('hidden');
+  const state = tabsMap[activeTabId];
+  if (!state || !state.indexes || state.indexes.length === 0) {
+    return;
+  }
+  
+  state.indexes.forEach((idx) => {
+    const controlDiv = document.createElement('div');
+    controlDiv.className = 'control';
+    
+    const tagsDiv = document.createElement('div');
+    tagsDiv.className = 'tags has-addons';
+    
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'tag is-dark';
+    labelSpan.textContent = `Image ${idx}`;
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'tag is-delete';
+    deleteBtn.type = 'button';
+    deleteBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      removeIndexFromTab(idx);
+    });
+    
+    tagsDiv.appendChild(labelSpan);
+    tagsDiv.appendChild(deleteBtn);
+    controlDiv.appendChild(tagsDiv);
+    container.appendChild(controlDiv);
+  });
+}
+
+function removeIndexFromTab(idx) {
+  if (activeTabId === 'tab-mix') return;
+  const state = tabsMap[activeTabId];
+  if (!state || !state.indexes) return;
+  
+  const pos = state.indexes.indexOf(idx);
+  if (pos !== -1) {
+    state.indexes.splice(pos, 1);
+  }
+  
+  drawCanvasBitmap();
+  updateTabLabel(activeTabId);
+  updateTagsList();
+  resetAudio();
+  
+  if (state.indexes.length > 0) {
+    updateUrlWithIndexes(state.indexes);
+    updateTitleAndHeader(state.indexes[0]);
+  } else {
+    window.location.hash = '';
+    document.title = 'hash-image';
+    document.querySelector('h1').textContent = 'hash-image';
+  }
+}
+
 function switchToTextInput() {
   currentMode = 'input';
   controls.classList.remove('disabled');
@@ -111,18 +198,20 @@ function switchToTextInput() {
   if (text) {
     const hashInfo = getHashInfo(text, crc32Instance);
     if (hashInfo) {
-      renderingState.index = hashInfo.index;
-      drawCanvasBitmap(hashInfo.index);
-      updateUrlWithIndex(hashInfo.index);
+      renderingState.indexes = [hashInfo.index];
+      drawCanvasBitmap();
+      updateUrlWithIndexes(renderingState.indexes);
       updateTitleAndHeader(hashInfo.index);
+      updateTagsList();
     }
   } else {
     // If no text, clear preview canvas, URL, and header
-    renderingState.index = null;
-    drawCanvasBitmap(null);
+    renderingState.indexes = [];
+    drawCanvasBitmap();
     window.location.hash = '';
     document.title = 'hash-image';
     document.querySelector('h1').textContent = 'hash-image';
+    updateTagsList();
   }
 }
 
@@ -160,16 +249,52 @@ function createBitmap(index, cssClass, showIndex, isGallery = false) {
   return wrapper;
 }
 
-function drawCanvasBitmap(index, clear = true, stateOverride = null) {
+function drawSingleBitmap(index, state) {
+  if (index === null) return;
+  const { foregroundColor, isInverted, fillFrequencyH, fillFrequencyV } = state;
+  const pixelArray = getPixelArray(index, isInverted);
+  const opacityMap = getPixelOpacityMap(SCALE_UP, fillFrequencyH, fillFrequencyV);
+
+  ctx.fillStyle = foregroundColor;
+
+  pixelArray.forEach((row, y) => {
+    row.forEach((pixelValue, x) => {
+      if (pixelValue === 1) {
+        const startX = x * SCALE_UP;
+        const startY = y * SCALE_UP;
+
+        if (fillFrequencyH === 0 && fillFrequencyV === 0) {
+          ctx.globalAlpha = 1.0;
+          ctx.fillRect(startX, startY, SCALE_UP, SCALE_UP);
+        } else if (fillFrequencyH > 0 && fillFrequencyV === 0) {
+          for (let i = 0; i < SCALE_UP; i++) {
+            ctx.globalAlpha = opacityMap[0][i];
+            ctx.fillRect(startX + i, startY, 1, SCALE_UP);
+          }
+        } else if (fillFrequencyH === 0 && fillFrequencyV > 0) {
+          for (let j = 0; j < SCALE_UP; j++) {
+            ctx.globalAlpha = opacityMap[j][0];
+            ctx.fillRect(startX, startY + j, SCALE_UP, 1);
+          }
+        } else {
+          for (let j = 0; j < SCALE_UP; j++) {
+            for (let i = 0; i < SCALE_UP; i++) {
+              ctx.globalAlpha = opacityMap[j][i];
+              ctx.fillRect(startX + i, startY + j, 1, 1);
+            }
+          }
+        }
+      }
+    });
+  });
+}
+
+function drawCanvasBitmap(clear = true, stateOverride = null) {
     const state = stateOverride || renderingState;
 
     // Only update tab label if we are drawing for the active tab without override
-    if (!stateOverride) {
-      const activeTabIdNum = activeTabId.split('-')[1];
-      const activeTabLabel = document.getElementById(`tab-label-${activeTabIdNum}`);
-      if (activeTabLabel) {
-        activeTabLabel.textContent = index !== null ? `Image ${index}` : 'No Image';
-      }
+    if (!stateOverride && activeTabId !== 'tab-mix') {
+      updateTabLabel(activeTabId);
     }
 
     ctx.globalAlpha = 1.0;
@@ -177,44 +302,38 @@ function drawCanvasBitmap(index, clear = true, stateOverride = null) {
       ctx.clearRect(0, 0, canvasSize, canvasSize);
     }
 
-    if (index === null) return;
+    // If we are in mix mode or the current tab has no indexes, do nothing more
+    if (!state || !state.indexes || state.indexes.length === 0) {
+        return;
+    }
 
-    const { foregroundColor, isInverted, fillFrequencyH, fillFrequencyV } = state;
-    const pixelArray = getPixelArray(index, isInverted);
-    const opacityMap = getPixelOpacityMap(SCALE_UP, fillFrequencyH, fillFrequencyV);
+    const prevComp = ctx.globalCompositeOperation;
+    if (state.indexes.length > 1) {
+      ctx.globalCompositeOperation = 'lighter';
+    }
 
-    ctx.fillStyle = foregroundColor;
-
-    pixelArray.forEach((row, y) => {
-      row.forEach((pixelValue, x) => {
-        if (pixelValue === 1) {
-          const startX = x * SCALE_UP;
-          const startY = y * SCALE_UP;
-
-          if (fillFrequencyH === 0 && fillFrequencyV === 0) {
-            ctx.globalAlpha = 1.0;
-            ctx.fillRect(startX, startY, SCALE_UP, SCALE_UP);
-          } else if (fillFrequencyH > 0 && fillFrequencyV === 0) {
-            for (let i = 0; i < SCALE_UP; i++) {
-              ctx.globalAlpha = opacityMap[0][i];
-              ctx.fillRect(startX + i, startY, 1, SCALE_UP);
-            }
-          } else if (fillFrequencyH === 0 && fillFrequencyV > 0) {
-            for (let j = 0; j < SCALE_UP; j++) {
-              ctx.globalAlpha = opacityMap[j][0];
-              ctx.fillRect(startX, startY + j, SCALE_UP, 1);
-            }
-          } else {
-            for (let j = 0; j < SCALE_UP; j++) {
-              for (let i = 0; i < SCALE_UP; i++) {
-                ctx.globalAlpha = opacityMap[j][i];
-                ctx.fillRect(startX + i, startY + j, 1, 1);
-              }
-            }
-          }
-        }
-      });
+    state.indexes.forEach(idx => {
+      drawSingleBitmap(idx, state);
     });
+
+    ctx.globalCompositeOperation = prevComp;
+}
+
+function drawMixCanvas() {
+  ctx.clearRect(0, 0, canvasSize, canvasSize);
+  ctx.globalCompositeOperation = 'lighter';
+
+  // Iterate over all tabs *except* the mix tab itself
+  for (const tabId in tabsMap) {
+    if (tabId === 'tab-mix') continue; // Skip the mix tab itself
+    const state = tabsMap[tabId];
+    if (state.indexes && state.indexes.length > 0) {
+      // Use drawCanvasBitmap with stateOverride to draw each tab's content
+      drawCanvasBitmap(false, state);
+    }
+  }
+
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 // Update title and h1 with current index
@@ -229,12 +348,16 @@ function drawBitmapGrid() {
       const wrapper = createBitmap(i, 'bitmap', true, true);
       wrapper.addEventListener('click', () => {
           currentMode = 'grid';
-          renderingState.index = i;
-          drawCanvasBitmap(i);
+          // Add to current tab's indexes instead of replacing
+          if (!renderingState.indexes.includes(i)) {
+            renderingState.indexes.push(i);
+          }
+          drawCanvasBitmap();
           controls.classList.add('disabled');
           inputField.disabled = true;
-          updateUrlWithIndex(i);
+          updateUrlWithIndexes(renderingState.indexes);
           updateTitleAndHeader(i);
+          updateTagsList();
           resetAudio();
       });
       gridContainer.appendChild(wrapper);
@@ -267,10 +390,11 @@ async function handleInput(e) {
       
       resultInfo.innerHTML = `Hash (CRC-32): ${rubyHtml}<span class="last-two">${lastRubyHtml}</span>`;
 
-      renderingState.index = hashInfo.index;
-      drawCanvasBitmap(hashInfo.index);
-      updateUrlWithIndex(hashInfo.index);
+      renderingState.indexes = [hashInfo.index];
+      drawCanvasBitmap();
+      updateUrlWithIndexes(renderingState.indexes);
       updateTitleAndHeader(hashInfo.index);
+      updateTagsList();
     }
 }
 
@@ -288,27 +412,50 @@ async function handleDownload() {
 
 // URL handling functions
 
-function updateUrlWithIndex(index) {
-  window.location.hash = `#/image9/${index}`;
+function arraysEqual(a, b) {
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+function updateUrlWithIndexes(indexes) {
+  if (indexes && indexes.length > 0) {
+    window.location.hash = `#/image9/${indexes.join(',')}`;
+  } else {
+    window.location.hash = '';
+  }
 }
 
 function handleUrlNavigation() {
   const hash = window.location.hash;
-  const match = hash.match(/#\/image9\/(\d+)/);
+  const match = hash.match(/#\/image9\/([\d,]+)/);
   if (match) {
-    const index = parseInt(match[1]);
-    if (index >= 0 && index <= 255) {
-      // ONLY reset to input mode if the index is different from what's already selected
-      // or if we aren't already in grid mode.
-      if (renderingState.index !== index) {
-        renderingState.index = index;
-        currentMode = 'input';
-        controls.classList.remove('disabled');
-        inputField.disabled = false;
-        drawCanvasBitmap(index);
-        updateTitleAndHeader(index);
-        resetAudio();
+    const parts = match[1].split(',');
+    const indexes = parts.map(p => parseInt(p, 10)).filter(idx => !isNaN(idx) && idx >= 0 && idx <= 255);
+    if (!arraysEqual(renderingState.indexes, indexes)) {
+      renderingState.indexes = indexes;
+      currentMode = 'input';
+      controls.classList.remove('disabled');
+      inputField.disabled = false;
+      drawCanvasBitmap();
+      if (indexes.length > 0) {
+        updateTitleAndHeader(indexes[0]);
       }
+      updateTagsList();
+      resetAudio();
+    }
+  } else if (hash === '' || hash === '#') {
+    if (renderingState.indexes.length > 0) {
+      renderingState.indexes = [];
+      currentMode = 'input';
+      controls.classList.remove('disabled');
+      inputField.disabled = false;
+      drawCanvasBitmap();
+      updateTagsList();
+      resetAudio();
     }
   }
 }
@@ -325,8 +472,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderingState.fillFrequencyH = parseInt(e.target.value, 10);
     frequencyValue.textContent = renderingState.fillFrequencyH;
 
-    if (renderingState.index !== null) {
-      drawCanvasBitmap(renderingState.index);
+    if (renderingState.indexes.length > 0) {
+      drawCanvasBitmap();
     }
   });
 
@@ -334,13 +481,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderingState.fillFrequencyV = parseInt(e.target.value, 10);
     verticalFrequencyValue.textContent = renderingState.fillFrequencyV;
 
-    if (renderingState.index !== null) {
-      drawCanvasBitmap(renderingState.index);
+    if (renderingState.indexes.length > 0) {
+      drawCanvasBitmap();
     }
   });
 
   // Handle URL navigation
   handleUrlNavigation();
+  updateTagsList();
   window.addEventListener('popstate', handleUrlNavigation);
 
   // Handle click on controls to return to input mode
@@ -356,8 +504,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     invertBtn.classList.toggle('active', renderingState.isInverted);
     resetAudio();
     
-    if (renderingState.index !== null) {
-      drawCanvasBitmap(renderingState.index);
+    if (renderingState.indexes.length > 0) {
+      drawCanvasBitmap();
     }
   });
 
@@ -367,8 +515,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     color: '#000000',
     onChange: function(color) {
       renderingState.foregroundColor = color.hex;
-      if (renderingState.index !== null) {
-        drawCanvasBitmap(renderingState.index);
+      if (renderingState.indexes.length > 0) {
+        drawCanvasBitmap();
       }
     }
   });
@@ -377,15 +525,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   audioBtn.addEventListener('click', async () => {
     let tracks = [];
     if (activeTabId === 'tab-mix') {
+      // Iterate over all tabs *except* the mix tab itself
       for (const tabId in tabsMap) {
+        if (tabId === 'tab-mix') continue; // Skip the mix tab itself
         const state = tabsMap[tabId];
-        if (state.index !== null) {
-          const pixelArray = getPixelArray(state.index, state.isInverted);
-          const bits = pixelArray.flat();
-          tracks.push({
-            bits: bits,
-            trillFrequency: state.fillFrequencyH,
-            equalizerFrequency: state.fillFrequencyV
+        if (state.indexes && state.indexes.length > 0) {
+          state.indexes.forEach(index => {
+            const pixelArray = getPixelArray(index, state.isInverted);
+            const bits = pixelArray.flat();
+            tracks.push({
+              bits: bits,
+              trillFrequency: state.fillFrequencyH,
+              equalizerFrequency: state.fillFrequencyV
+            });
           });
         }
       }
@@ -394,18 +546,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
     } else {
-      const indexToUse = renderingState.index;
-      if (indexToUse === null) {
+      if (!renderingState.indexes || renderingState.indexes.length === 0) {
         alert('Please enter text or click a grid image to generate a hash image first.');
         return;
       }
-      // Flatten 3x3 pixel array (includes inversion state)
-      const pixelArray = getPixelArray(indexToUse, renderingState.isInverted);
-      const bits = pixelArray.flat();
-      tracks.push({
-        bits: bits,
-        trillFrequency: renderingState.fillFrequencyH,
-        equalizerFrequency: renderingState.fillFrequencyV
+      renderingState.indexes.forEach(index => {
+        const pixelArray = getPixelArray(index, renderingState.isInverted);
+        const bits = pixelArray.flat();
+        tracks.push({
+          bits: bits,
+          trillFrequency: renderingState.fillFrequencyH,
+          equalizerFrequency: renderingState.fillFrequencyV
+        });
       });
     }
 
@@ -446,7 +598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (downloadAudioBtn) {
     downloadAudioBtn.addEventListener('click', () => {
       if (audioUrl) {
-        const indexToUse = activeTabId === 'tab-mix' ? 'mix' : (renderingState.index !== null ? renderingState.index : 'unknown');
+        const indexToUse = activeTabId === 'tab-mix' ? 'mix' : (renderingState.indexes.length > 0 ? renderingState.indexes.join('_') : 'unknown');
         const a = document.createElement('a');
         a.href = audioUrl;
         a.download = `hash-audio-${indexToUse}.wav`;
@@ -481,7 +633,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   addTabBtn.addEventListener('click', () => {
     const newTabId = `tab-${tabCount}`;
-    tabsMap[newTabId] = { ...renderingState };
+    tabsMap[newTabId] = {
+      foregroundColor: renderingState.foregroundColor,
+      isInverted: renderingState.isInverted,
+      fillFrequencyH: renderingState.fillFrequencyH,
+      fillFrequencyV: renderingState.fillFrequencyV,
+      indexes: [...renderingState.indexes]
+    };
 
     const newTabLi = document.createElement('li');
     newTabLi.id = newTabId;
@@ -493,7 +651,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const span = document.createElement('span');
     span.id = `tab-label-${tabCount}`;
     span.className = 'tab-click-area';
-    span.textContent = renderingState.index !== null ? `Image ${renderingState.index}` : 'No Image';
 
     const btn = document.createElement('button');
     btn.className = 'delete is-small ml-2 close-tab-btn';
@@ -516,26 +673,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       closeTab(newTabId);
     });
 
+    updateTabLabel(newTabId);
     tabCount++;
     switchTab(newTabId);
   });
 
   document.getElementById('tab-mix').addEventListener('click', () => switchTab('tab-mix'));
-
-  function drawMixCanvas() {
-    ctx.globalAlpha = 1.0;
-    ctx.clearRect(0, 0, canvasSize, canvasSize);
-    ctx.globalCompositeOperation = 'lighter';
-
-    for (const tabId in tabsMap) {
-      const state = tabsMap[tabId];
-      if (state.index !== null) {
-        drawCanvasBitmap(state.index, false, state);
-      }
-    }
-
-    ctx.globalCompositeOperation = 'source-over';
-  }
 
   function closeTab(tabId) {
     const tabIds = Object.keys(tabsMap);
@@ -551,12 +694,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tabElem = document.getElementById(tabId);
     if (tabElem) tabElem.remove();
 
+    // If the mix tab was active and a tab is closed, redraw mix canvas if it's still active
     if (activeTabId === 'tab-mix') {
       drawMixCanvas();
     }
   }
 
   function switchTab(tabId) {
+    // Save current tab state before switching
+    if (activeTabId !== 'tab-mix') {
+      tabsMap[activeTabId] = {
+        foregroundColor: renderingState.foregroundColor,
+        isInverted: renderingState.isInverted,
+        fillFrequencyH: renderingState.fillFrequencyH,
+        fillFrequencyV: renderingState.fillFrequencyV,
+        indexes: [...renderingState.indexes]
+      };
+    }
+
     activeTabId = tabId;
     resetAudio();
 
@@ -566,6 +721,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     if (tabId === 'tab-mix') {
+      window.location.hash = '';
+      // Need to happen before disabling controls as it would enable it again.
+      // It would also draw the canvas again, so drawMixCanvas needs to come after.
+
       // Hide most controls except download and preview
       inputField.disabled = true;
       controls.classList.add('disabled');
@@ -577,8 +736,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       verticalFrequencySlider.closest('.field').classList.add('hidden');
 
       drawMixCanvas();
+      updateTagsList();
 
-      window.location.hash = '';
       document.title = 'hash-image Mix';
       document.querySelector('h1').textContent = 'hash-image Mix';
       return;
@@ -605,10 +764,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     invertBtn.classList.toggle('active', renderingState.isInverted);
     colorPicker.setColor(renderingState.foregroundColor, true);
 
-    drawCanvasBitmap(renderingState.index);
-    if (renderingState.index !== null) {
-      updateUrlWithIndex(renderingState.index);
-      updateTitleAndHeader(renderingState.index);
+    drawCanvasBitmap();
+    updateTagsList();
+    if (renderingState.indexes && renderingState.indexes.length > 0) {
+      updateUrlWithIndexes(renderingState.indexes);
+      updateTitleAndHeader(renderingState.indexes[0]);
     } else {
       window.location.hash = '';
       document.title = 'hash-image';
