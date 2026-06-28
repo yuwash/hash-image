@@ -1,5 +1,9 @@
 /* Custom styling for the 3x3 bitmap layout and pixel rendering */
 
+#preview-container {
+    max-width: 100%;
+}
+
 #preview-wrapper {
     position: relative;
     width: 10.5rem;
