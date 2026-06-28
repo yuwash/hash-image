@@ -4,6 +4,10 @@
 let crc32Instance;
 let sha256Instance; // New instance for SHA-256
 
+// Import functions from hashImage.js
+import { getHashInfo, getPixelArray, getPixelOpacityMap } from './hashImage.js';
+import { generateHashAudio } from './hashSound.js';
+
 async function initHasher() {
   if (window.hashwasm && window.hashwasm.createCRC32) {
     crc32Instance = await window.hashwasm.createCRC32();

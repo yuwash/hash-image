@@ -67,6 +67,10 @@
     text-align: center;
 }
 
+#result-info {
+    overflow: scroll;
+}
+
 /* Highlight last two hex digits in result info */
 #result-info .last-two {
     font-weight: bold;
