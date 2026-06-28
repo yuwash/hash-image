@@ -385,11 +385,23 @@ async function handleInput(e) {
 
     const hashInfo = getHashInfo(text, crc32Instance);
     if (hashInfo) {
-      // Format CRC-32 with ruby tags for decimal values
-      const crcHex = hashInfo.base;
-      let rubyHtml = '';
+      // Extract all four pairs of hex digits
+      const crcHex = hashInfo.base; // This should be the full 8-digit hex string
+      const indexes = [];
+
+      // Process 2 hex digits at a time to get the index for each pair
+      for (let i = 0; i < crcHex.length; i += 2) {
+        const pair = crcHex.substring(i, i + 2);
+        const decimal = parseInt(pair, 16);
+        indexes.push(decimal);
+      }
+      indexes.push(hashInfo.index);  // the last one.
       
-      // Process 2 hex digits at a time
+      // Replace the current indexes list with the new ones
+      renderingState.indexes = indexes;
+
+      // Format CRC-32 with ruby tags for decimal values
+      let rubyHtml = '';
       for (let i = 0; i < crcHex.length; i += 2) {
         const pair = crcHex.substring(i, i + 2);
         const decimal = parseInt(pair, 16);
@@ -400,7 +412,6 @@ async function handleInput(e) {
       
       resultInfo.innerHTML = `Hash (CRC-32): ${rubyHtml}<span class="last-two">${lastRubyHtml}</span>`;
 
-      renderingState.indexes = [hashInfo.index];
       drawCanvasBitmap();
       updateUrlWithIndexes(renderingState.indexes);
       updateTitleAndHeader(hashInfo.index);
