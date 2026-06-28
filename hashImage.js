@@ -1,22 +1,20 @@
 // Function to calculate hash info from text
-function getHashInfo(text, crc32Instance) {
-  if (!crc32Instance) {
+function getHashInfo(text, hasherInstance) {
+  if (!hasherInstance) {
     return null;
   }
   
-  crc32Instance.init();
+  hasherInstance.init();
   const uint8Array = new TextEncoder().encode(text);
-  crc32Instance.update(uint8Array);
-  const hash = crc32Instance.digest('hex');
-
-  const first8Hex = hash.substring(0, 8);
-  const index = (parseInt(first8Hex, 16) % 256);
+  hasherInstance.update(uint8Array);
+  const hash = hasherInstance.digest('hex');
 
   const lastTwo = hash.slice(-2);
   const imageNumber = parseInt(lastTwo, 16);
 
   const base = hash.slice(0, -2);
   const last = hash.slice(-2);
+  const index = parseInt(last, 16);
 
   return {
     hash: hash,

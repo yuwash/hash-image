@@ -416,15 +416,11 @@ async function handleInput(e) {
         numPairs = 4; // CRC-32 has 8 hex digits, so 4 pairs
       }
     } else if (selectedHashMethod === 'sha256') {
-      if (!sha256Instance) {
-        console.error('SHA-256 instance not available.');
-        return;
+      hashInfo = getHashInfo(text, sha256Instance);
+      if (hashInfo) {
+        hashHex = hashInfo.base; // This should be the full 64-digit hex string
+        numPairs = 32; // SHA-256 has 64 hex digits, so 32 pairs
       }
-      sha256Instance.init();
-      const uint8Array = new TextEncoder().encode(text);
-      sha256Instance.update(uint8Array);
-      hashHex = sha256Instance.digest('hex');
-      numPairs = 32; // SHA-256 has 64 hex digits, so 32 pairs
     } else {
       console.warn(`Hash method "${selectedHashMethod}" not implemented.`);
       return;
@@ -441,19 +437,20 @@ async function handleInput(e) {
         indexes.push(decimal);
         rubyHtml += `<ruby>${pair}<rt>${decimal}</rt></ruby>`;
       }
+      indexes.push(hashInfo.index);  // the last one.
       
       // Replace the current indexes list with the new ones
       renderingState.indexes = indexes;
 
+      const lastDecimal = parseInt(hashInfo.last, 16);
+      const lastRubyHtml = `<ruby>${hashInfo.last}<rt>${lastDecimal}</rt></ruby>`;
+      
       // Update resultInfo to show "Hash:" and the generated hash
-      resultInfo.innerHTML = `Hash: ${rubyHtml}`;
+      resultInfo.innerHTML = `Hash: ${rubyHtml}<span class="last-two">${lastRubyHtml}</span>`;
 
       drawCanvasBitmap();
       updateUrlWithIndexes(renderingState.indexes);
-      // For SHA-256, the last index is derived from the last pair of hex digits.
-      // For CRC-32, hashInfo.index is already the last index.
-      const lastIndex = selectedHashMethod === 'crc32' ? hashInfo.index : indexes[indexes.length - 1];
-      updateTitleAndHeader(lastIndex);
+      updateTitleAndHeader(hashInfo.index);
       updateTagsList();
     }
 }
