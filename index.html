@@ -21,15 +21,27 @@ window.UPNG = pdfLibupng;
     <h1 class="title is-1 has-text-centered mb-5">hash-image</h1>
 
     <div id="controls" class="box mb-5">
-        <div class="field">
-            <label for="hash-input" class="label">Find my hash image:</label>
-            <div class="columns is-mobile is-vcentered">
-                <div class="column is-two-thirds">
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label for="hash-input" class="label">Find my hash image:</label>
+            </div>
+            <div class="field-body">
+                <div class="field is-expanded">
                     <div class="control">
                         <input type="text" id="hash-input" class="input" placeholder="Type text here...">
                     </div>
                 </div>
-                <div class="column is-one-third">
+                <div class="field is-narrow">
+                    <div class="control">
+                        <div class="select">
+                            <select id="hash-method-dropdown">
+                                <option value="crc32">CRC-32</option>
+                                <!-- Add other hashing methods here as options -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="field is-narrow">
                     <div id="result-info" class="is-family-monospace is-size-7-mobile is-size-6-tablet"></div>
                 </div>
             </div>
