@@ -375,21 +375,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Handle audio generation button click
   audioBtn.addEventListener('click', async () => {
-    if (activeTabId === 'tab-mix') return;
-    const indexToUse = renderingState.index;
-    
-    if (indexToUse === null) {
-      alert('Please enter text or click a grid image to generate a hash image first.');
-      return;
+    let tracks = [];
+    if (activeTabId === 'tab-mix') {
+      for (const tabId in tabsMap) {
+        const state = tabsMap[tabId];
+        if (state.index !== null) {
+          const pixelArray = getPixelArray(state.index, state.isInverted);
+          const bits = pixelArray.flat();
+          tracks.push({
+            bits: bits,
+            trillFrequency: state.fillFrequencyH,
+            equalizerFrequency: state.fillFrequencyV
+          });
+        }
+      }
+      if (tracks.length === 0) {
+        alert('Please enter text or click a grid image in at least one tab first.');
+        return;
+      }
+    } else {
+      const indexToUse = renderingState.index;
+      if (indexToUse === null) {
+        alert('Please enter text or click a grid image to generate a hash image first.');
+        return;
+      }
+      // Flatten 3x3 pixel array (includes inversion state)
+      const pixelArray = getPixelArray(indexToUse, renderingState.isInverted);
+      const bits = pixelArray.flat();
+      tracks.push({
+        bits: bits,
+        trillFrequency: renderingState.fillFrequencyH,
+        equalizerFrequency: renderingState.fillFrequencyV
+      });
     }
 
     try {
       audioBtn.classList.add('is-loading');
       audioBtn.disabled = true;
-
-      // Flatten 3x3 pixel array (includes inversion state)
-      const pixelArray = getPixelArray(indexToUse, renderingState.isInverted);
-      const bits = pixelArray.flat();
 
       // Revoke old URL to avoid memory leaks
       if (audioUrl) {
@@ -397,7 +419,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       // Generate WAV URL and set it to player
-      audioUrl = await generateHashAudio(bits, renderingState.fillFrequencyH, renderingState.fillFrequencyV);
+      audioUrl = await generateHashAudio(tracks);
       audioPlayer.src = audioUrl;
       audioPlayer.classList.remove('hidden');
       if (downloadAudioBtn) {
@@ -424,7 +446,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (downloadAudioBtn) {
     downloadAudioBtn.addEventListener('click', () => {
       if (audioUrl) {
-        const indexToUse = renderingState.index !== null ? renderingState.index : 'unknown';
+        const indexToUse = activeTabId === 'tab-mix' ? 'mix' : (renderingState.index !== null ? renderingState.index : 'unknown');
         const a = document.createElement('a');
         a.href = audioUrl;
         a.download = `hash-audio-${indexToUse}.wav`;
@@ -536,6 +558,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function switchTab(tabId) {
     activeTabId = tabId;
+    resetAudio();
 
     // Update active tab UI
     tabsContainer.querySelectorAll('li').forEach(li => {
@@ -550,9 +573,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       gridContainer.classList.add('hidden');
       colorPickerBtn.classList.add('hidden');
       invertBtn.classList.add('hidden');
-      audioBtn.classList.add('hidden');
-      audioPlayer.classList.add('hidden');
-      downloadAudioBtn.classList.add('hidden');
       frequencySlider.closest('.field').classList.add('hidden');
       verticalFrequencySlider.closest('.field').classList.add('hidden');
 
