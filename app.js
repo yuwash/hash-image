@@ -264,7 +264,13 @@ function drawSingleBitmap(index, state) {
         const startY = y * SCALE_UP;
 
         if (fillFrequencyH === 0 && fillFrequencyV === 0) {
-          ctx.globalAlpha = 1.0;
+          // If multiple indexes are present, apply an opacity of 1/n for each
+          if (state.indexes && state.indexes.length > 1) {
+            const n = state.indexes.length;
+            ctx.globalAlpha = 1.0 / n;
+          } else {
+            ctx.globalAlpha = 1.0;
+          }
           ctx.fillRect(startX, startY, SCALE_UP, SCALE_UP);
         } else if (fillFrequencyH > 0 && fillFrequencyV === 0) {
           for (let i = 0; i < SCALE_UP; i++) {
@@ -297,7 +303,7 @@ function drawCanvasBitmap(clear = true, stateOverride = null) {
       updateTabLabel(activeTabId);
     }
 
-    ctx.globalAlpha = 1.0;
+    ctx.globalAlpha = 1.0; // Reset global alpha before clearing or drawing
     if (clear) {
       ctx.clearRect(0, 0, canvasSize, canvasSize);
     }
@@ -308,15 +314,19 @@ function drawCanvasBitmap(clear = true, stateOverride = null) {
     }
 
     const prevComp = ctx.globalCompositeOperation;
+    // If multiple indexes, use 'lighter' for additive blending.
+    // The individual drawSingleBitmap will handle per-bitmap opacity.
     if (state.indexes.length > 1) {
       ctx.globalCompositeOperation = 'lighter';
+    } else {
+      ctx.globalCompositeOperation = 'source-over'; // Ensure it's reset if only one image
     }
 
     state.indexes.forEach(idx => {
       drawSingleBitmap(idx, state);
     });
 
-    ctx.globalCompositeOperation = prevComp;
+    ctx.globalCompositeOperation = prevComp; // Restore original composite operation
 }
 
 function drawMixCanvas() {
