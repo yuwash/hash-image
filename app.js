@@ -146,7 +146,7 @@ function updateTagsList() {
     
     const labelSpan = document.createElement('span');
     labelSpan.className = 'tag is-dark';
-    labelSpan.textContent = `Image ${idx}`;
+    labelSpan.textContent = `${idx}`;
     
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'tag is-delete';
